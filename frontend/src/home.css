@@ -1,286 +1,524 @@
-/* ===== base ===== */
-* { box-sizing: border-box; }
+/* =========================
+   Base
+   ========================= */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  
-  font-family: "Inter", "Pretendard Variable", Pretendard, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+  font-family: "Inter", "Pretendard Variable", Pretendard, sans-serif;
   background: #fff;
   color: #111;
 }
 
-.page{
+/* 이미지 렌더링 */
+img {
+  image-rendering: auto;
+}
+
+/* =========================
+   Section 1 (Hero)
+   ========================= */
+.page {
   min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
 }
 
-.top{
-  position: relative;
-  z-index: 1000; 
-}
-
-.dd{
-  position: relative;
-  z-index: 1100; 
-}
-
-.dd__menu{
-  position: absolute;
-  z-index: 1200; 
-}
-
-
-.top__inner{
-  width: min(1280px, 92vw);
+.hero {
+  width: min(96rem, 96vw);
   margin: 0 auto;
-  padding: 0 28px;
-  height: 48px;
 
   display: grid;
-  grid-template-columns: 1fr auto 1fr;  /* 좌/중/우 */
-  align-items: center;
-  position: relative;
-}
-
-.top__nav{
-  grid-column: 2;
-  position: static;      
-  transform: none;       
-  display: flex;
-  gap: 50px;
-  align-items: center;
-  justify-content: center;
-}
-.top__login{
-  grid-column: 3;
-  justify-self: end;
-
-  padding: 10px 18px;
-  border-radius: 12px;
-  border: none;
-  background: #0b2bff;
-  color: #fff;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: 0 10px 18px rgba(11,43,255,.22);
-}
-
-/* ===== dropdown ===== */
-.dd{ position: relative; }
-
-.dd__btn{
-  display: inline-flex;       
-  align-items: center;        /* 수직 중앙 */
-  gap: 6px;
-
-  background: transparent;
-  border: none;
-  cursor: pointer;
-
-  font-weight: 700;
-  font-size: 18px;
-  line-height: 1;             /*  줄바꿈 방지 */
-
-  color: #111;
-  padding: 12px 30px;
-  border-radius: 12px;
-  writing-mode: horizontal-tb;   /* 가로 글자 강제 */
-  text-orientation: mixed;        /* 세로 글자 방지 */
-  white-space: nowrap;
-}
-
-.dd__btn:hover{
-  background: rgba(11,43,255,.08);
-}
-
-.dd__chev{
-  font-size: 10px;
-  line-height: 1;
-  transform: translateY(1px); /* 살짝 아래로  */
-}
-
-.dd__chev.rot{ transform: rotate(180deg); }
-
-.dd__menu{
-  position: absolute;
-  top: 40px;
-  left: 0;
-  width: 170px;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 18px 34px rgba(0,0,0,.12);
-  padding: 8px;
-  border: 1px solid rgba(0,0,0,.06);
-}
-
-.dd__item{
-  display: block;
-  padding: 10px 12px;
-  border-radius: 10px;
-  color: #111;
-  text-decoration: none;
-  font-size: 20px;
-}
-.dd__item:hover{
-  background: rgba(11,43,255,.08);
-}
-
-/* ===== HERO ===== */
-.hero{
-  width: min(1280px, 92vw);   /*  큰 화면에서 더 넓게 */
-  margin: 0 auto;
-  padding: 50px 50px;
-
-  
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: clamp(72px, 12vw, 160px);
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 6rem;
   align-items: center;
 }
 
-.hero__right{
-  display: flex;
-  justify-content: flex-start;
-}
-
-.hero__panel{
+.hero__panel {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 18px; /* title-desc-button 간격 */
-
-  /*  블록 느낌(원하면 켜고 끄기 ) */
-  /* background: rgba(255,255,255,0.65);
-  border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 18px;
-  padding: 22px 22px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.06); */
-
-  max-width: 520px; 
+  gap: 1.8rem;
 }
 
-
-/* ===== iMac mockup ===== */
-.imacWrap{
+/* =========================
+   iMac Mockup
+   ========================= */
+.imacWrap {
   position: relative;
-  width: min(620px, 46vw);     
-  max-width: 100%;
-  padding-bottom: 18px;
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
 }
 
-/* 파란 포인트 블록 */
-.imacWrap::before{
+/* 파란 베이스 */
+.imacWrap::before {
   content: "";
   position: absolute;
 
-  /* 블록 위치/크기: 필요하면 여기만 조절 */
-  left: 10%;
-  right: 8%;
-  bottom: 0;
-  height: 150px;
+  left: 6%;
+  right: 6%;
+  bottom: -7%;
+  height: 12rem;
 
-  background: #0b2bff;
-  border-radius: 18px;
+  /* 단색보다 입체감 있게 */
+  background: linear-gradient(180deg, #1236ff 0%, #0b2bff 60%, #0822cc 100%);
+
+  border-radius: 1.6rem;
   z-index: 0;
-
-  box-shadow:
-    0 24px 44px rgba(11,43,255,.22);
+  box-shadow: 0 1.8rem 3.6rem rgba(11, 43, 255, 0.32);
 }
 
-.imac{
+.imac {
   width: 100%;
   position: relative;
   z-index: 1;
+
+  /* 경계 살리기 */
+  filter: drop-shadow(0 0.6rem 1.2rem rgba(0, 0, 0, 0.18));
 }
 
-.screen{
+/* iMac 안 대시보드 화면 */
+.screen {
   position: absolute;
   z-index: 2;
 
- 
-  left: 14%;
+  left: 14.2%;
   top: 9%;
-  width: 73%;
-  height: 54%;
+  width: 71.6%;
+  height: 53.5%;
 
-   object-fit: contain;   
-  background: #0b0f1a;   
-  border-radius: 10px;
-  box-shadow: 0 14px 30px rgba(0,0,0,.22);
+  object-fit: contain;
+  background: transparent;
 }
 
-/* ===== RIGHT TEXT ===== */
-.title{
-  font-size: clamp(34px, 4.2vw, 56px);  /*  줌/창 크기에도 안정적 */
+/* =========================
+   Title / Logo / Desc
+   ========================= */
+.title {
+  font-size: clamp(2.8rem, 4.8vw, 4.2rem);
   font-weight: 900;
-  line-height: 1.02;
-  margin: 0 0 16px;
-  letter-spacing: -1px;
+  line-height: 1.1;
+  margin: 0;
+  letter-spacing: -0.04em;
 }
 
-
-.blue{
+.blue {
   color: #0b2bff;
 }
 
-.desc{
+.titleLogo {
+  display: inline-block;
+  width: 1.05em;
+  height: auto;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+  transform: translateY(-0.08em);
+}
+
+.desc {
   list-style: none;
   padding: 0;
-  margin: 0 0 24px;
-  color: rgba(0,0,0,.62);
-  line-height: 2;
-  font-size: 14px;
+  margin: 0; /* hero__panel gap으로 간격 관리 */
+  font-size: 1.15rem;
+  line-height: 1.9;
+  color: #555;
 }
-
-.startBtn{
+.top__login{
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.5rem;
 
-  padding: 0 26px;          
-  height: 48px;
+  padding: 0.9rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+ margin-top: 3rem; /* ← 이 값만 조절 */
+  border-radius: 0.9rem;
+  border: 1px solid rgba(0,0,0,0.08);
 
-  border-radius: 12px;
-  border: none;
-
-  background: #0b2bff;
-  color: #fff;
-
-  font-weight: 900;
-  font-size: 18px;
+  background: transparent;
+  color: #111;
 
   cursor: pointer;
-  box-shadow: 0 18px 26px rgba(11,43,255,.20);
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-.startText{
-  white-space: nowrap;
+.top__login:hover{
+  background: #0b2bff;
+  color: #fff;
+  border-color: #0b2bff;
 }
 
-.startBtn:hover{
-  filter: brightness(.96);
+.userIcon{
+  font-size: 1rem;     /* 글자보다 살짝 작게 */
+  opacity: 0.75;       /* 튀지 않게 */
 }
 
+/* =========================
+   Fullpage Sections (2,3...)
+   ========================= */
+.fullpage {
+  height: 100vh;
+  overflow: hidden; /* 데스크탑에서 휠 가로채기용 */
+}
 
-.icon{
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
+.fp-section {
+  height: 100vh;
+  width: 100%;
+}
+
+.fp-inner {
+  width: min(80rem, 92vw);
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
-
-    
-
-
-
-  background: rgba(255,255,255,.18);
-  border-radius: 9px;
 }
 
+.fp-title {
+  font-size: clamp(2rem, 3vw, 3rem);
+  margin: 0 0 1rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
 
-.icon svg{
-  width: 18px;
-  height: 18px;
+.fp-text {
+  margin: 0 0 2.2rem;
+  color: #666;
+  line-height: 1.8;
+  max-width: 46rem;
+}
+
+.fp-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.fp-card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 1.1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.06);
+}
+
+.fp-card__t {
+  font-weight: 900;
+  margin-bottom: 0.5rem;
+}
+
+.fp-card__d {
+  color: #666;
+  line-height: 1.6;
+}
+
+.intro {
+  background: #fff;
+}
+
+.feature {
+  background: rgba(11, 43, 255, 0.03);
+}
+
+/* =========================
+   Responsive
+   ========================= */
+
+/* 태블릿 이하: 2열 -> 1열 */
+@media (max-width: 64rem) {
+  .page {
+    padding: 3rem 0;
+    align-items: flex-start;
+  }
+
+  .hero {
+    width: min(56rem, 92vw);
+    grid-template-columns: 1fr;
+    gap: 3.5rem;
+  }
+
+  .imacWrap {
+    max-width: 44rem;
+  }
+
+  .imacWrap::before {
+    height: 10rem;
+    bottom: -8%;
+    left: 10%;
+    right: 10%;
+    border-radius: 1.3rem;
+  }
+}
+
+/* 모바일 (필요있나 싶긴함) */
+@media (max-width: 48rem) {
+  .page {
+    padding: 2.25rem 0;
+  }
+
+  .hero {
+    width: 92vw;
+    gap: 2.5rem;
+  }
+
+  .imacWrap {
+    max-width: 92vw;
+  }
+
+  .imacWrap::before {
+    height: 8.5rem;
+    bottom: -10%;
+    left: 12%;
+    right: 12%;
+    border-radius: 1.1rem;
+  }
+
+  .title {
+    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    line-height: 1.08;
+  }
+
+  .titleLogo {
+    width: 1em;
+    margin-left: 0.35rem;
+    transform: translateY(-0.05em);
+  }
+
+  .desc {
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+
+  .top__login {
+    font-size: 1.1rem;
+    padding: 1rem 2.2rem;
+    border-radius: 0.9rem;
+  }
+}
+
+/* 아주 작은 화면 */
+@media (max-width: 26rem) {
+  .title {
+    font-size: 2rem;
+  }
+  .desc {
+    font-size: 0.95rem;
+  }
+}
+
+/* 모바일/태블릿: 풀페이지 강제 스크롤은 끄고 일반 스크롤 */
+@media (max-width: 63.999rem) {
+  .fullpage {
+    height: auto;
+    overflow: visible;
+  }
+
+  .fp-section {
+    height: auto;
+    padding: 4rem 0;
+  }
+
+  .fp-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
+   Section 2/3 Content Blocks
+   ========================= */
+
+.sec {
+  gap: 2.2rem;
+}
+
+.sec__head {
+  max-width: 56rem;
+}
+
+.sec__title {
+  margin: 0 0 0.9rem;
+  font-size: clamp(2.1rem, 3.4vw, 3rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.sec__sub {
+  margin: 0;
+  color: #666;
+  line-height: 1.8;
+  font-size: 1.05rem;
+}
+
+.sec2 {
+  background: #fff;
+}
+
+.sec3 {
+  background: rgba(11, 43, 255, 0.03);
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 2.2rem;
+  align-items: start;
+}
+
+.cards {
+  display: grid;
+  gap: 1rem;
+}
+
+.fcard {
+  display: flex;
+  gap: 1rem;
+  padding: 1.1rem 1.1rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #fff;
+  box-shadow: 0 1rem 2rem rgba(0,0,0,0.05);
+}
+
+.ficon {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.9rem;
+  display: grid;
+  place-items: center;
+  background: rgba(11,43,255,0.10);
+  color: #0b2bff;
+  flex: 0 0 auto;
+}
+
+.ficon svg { width: 1.4rem; height: 1.4rem; }
+
+.fcard__t {
+  font-weight: 900;
+  margin-bottom: 0.25rem;
+}
+
+.fcard__d {
+  color: #666;
+  line-height: 1.6;
+  font-size: 0.98rem;
+}
+
+.shot {
+  display: grid;
+  gap: 1rem;
+}
+
+.shot__frame {
+  border-radius: 1.25rem;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 1.6rem 3.2rem rgba(0,0,0,0.08);
+  background: #0b0f1a;
+}
+
+.shot__img {
+  width: 100%;
+  height: auto;
   display: block;
-  stroke-width: 2;
 }
 
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
 
+.stat {
+  border-radius: 1rem;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #fff;
+  padding: 0.9rem 1rem;
+}
+
+.stat__k { color: #0b2bff; font-weight: 900; margin-bottom: 0.2rem; }
+.stat__v { color: #222; font-weight: 800; }
+
+/* Flow */
+.flow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: center;
+  margin-top: 0.4rem;
+}
+
+.step {
+  border-radius: 1.1rem;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #fff;
+  padding: 1.1rem 1.1rem;
+  box-shadow: 0 1rem 2rem rgba(0,0,0,0.05);
+}
+
+.step__n { color: rgba(11,43,255,0.9); font-weight: 900; }
+.step__t { font-size: 1.1rem; font-weight: 900; margin: 0.35rem 0 0.35rem; }
+.step__d { color: #666; line-height: 1.55; font-size: 0.95rem; }
+
+.arrow {
+  display: none; /* grid 4칸이라 화살표는 생략. 필요하면 true로 바꾸기 */
+}
+
+/* Architecture */
+.arch {
+  margin-top: 1.6rem;
+  display: grid;
+  grid-template-columns: 1fr 0.7fr 1fr;
+  gap: 1.2rem;
+  align-items: center;
+}
+
+.arch__col { display: grid; gap: 0.8rem; }
+.arch__box {
+  border-radius: 1.1rem;
+  border: 1px solid rgba(0,0,0,0.10);
+  background: #fff;
+  padding: 1.1rem 1.1rem;
+  box-shadow: 0 1rem 2rem rgba(0,0,0,0.05);
+}
+.arch__box.ghost {
+  background: rgba(255,255,255,0.65);
+}
+
+.arch__h { font-weight: 900; margin-bottom: 0.2rem; }
+.arch__p { color: #666; line-height: 1.6; }
+
+.arch__hint { color: #0b2bff; font-weight: 800; }
+
+.arch__mid {
+  display: grid;
+  gap: 0.8rem;
+  justify-items: stretch;
+}
+
+.arch__pipe {
+  border-radius: 999px;
+  padding: 0.8rem 1rem;
+  background: rgba(11,43,255,0.10);
+  color: #0b2bff;
+  font-weight: 900;
+  text-align: center;
+  border: 1px solid rgba(11,43,255,0.18);
+}
+
+/* Responsive */
+@media (max-width: 64rem) {
+  .grid2 { grid-template-columns: 1fr; }
+  .flow { grid-template-columns: 1fr 1fr; }
+  .arch { grid-template-columns: 1fr; }
+  .arch__mid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 48rem) {
+  .stats { grid-template-columns: 1fr; }
+  .flow { grid-template-columns: 1fr; }
+  .arch__mid { grid-template-columns: 1fr; }
+}
