@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./login.css";
 
@@ -7,63 +7,70 @@ import dashboard from "../../assets/images/dashboard.png";
 
 export default function Login() {
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
-  const [pw, setPw] = useState("");
+  const [password, setPassword] = useState("");
 
-  const canSubmit = useMemo(() => email.trim() && pw.trim(), [email, pw]);
-
-  const onSubmit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    alert("로그인 API는 다음 단계에서 붙일게. 지금은 UI/라우팅만.");
+    navigate("/dashboard");
   };
 
   return (
-    <div className="loginPage">
-      <div className="loginCard">
-        <div className="loginLeft">
+    <div className="authWrapper">
+      <div className="authCard">
+        {/* 왼쪽 이미지 */}
+        <div className="authLeft">
           <ImacMock screenSrc={dashboard} />
         </div>
 
-        <div className="loginRight">
-          <div className="loginHead">
-            <h1 className="loginTitle">로그인</h1>
-            <p className="loginSub">서비스 이용을 위해 로그인 해주세요</p>
-          </div>
+        {/* 오른쪽 */}
+        <div className="authRight">
+          <h1 className="authTitle">로그인</h1>
+          <p className="authSub">
+            서비스 이용을 위해 로그인 해주세요
+          </p>
 
-          <form className="loginForm" onSubmit={onSubmit}>
+          <form className="authForm" onSubmit={handleSubmit}>
+            <label className="authLabel">이메일 (ID)</label>
             <input
-              className="input"
               type="email"
-              placeholder="이메일 (ID)"
+              placeholder="example@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              autoComplete="username"
+              required
             />
 
+            <label className="authLabel">비밀번호</label>
             <input
-              className="input"
               type="password"
               placeholder="비밀번호"
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
             />
 
-            <button type="button" className="linkBtn">
+            <button
+              type="button"
+              className="authTextLink"
+              onClick={() => alert("비밀번호 찾기 기능은 추후 연결 예정입니다.")}
+            >
               비밀번호 찾기
             </button>
 
-            <button className="primaryBtn" type="submit" disabled={!canSubmit}>
+            <button type="submit" className="authBtn primary">
               로그인
             </button>
 
-            <div className="divider" />
-
-            <button className="ghostBtn" type="button">
+            <button type="button" className="authBtn secondary">
               회원가입
             </button>
 
-            <button className="backBtn" type="button" onClick={() => navigate("/")}>
+            <button
+              type="button"
+              className="authBack"
+              onClick={() => navigate("/")}
+            >
               ← 처음으로
             </button>
           </form>

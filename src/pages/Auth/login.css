@@ -1,144 +1,192 @@
-.loginPage {
+/* 배경 */
+.authWrapper {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  background: #ffffff;
-  padding: 2.5rem 1rem;
+  background: #f4f6fa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px; /* 작은 화면에서 잘림 방지 */
 }
 
-.loginCard {
-  width: min(64rem, 96vw);
-  min-height: 32rem;
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 2.5rem;
+/* 카드: height 고정 제거 -> 안 잘리게 */
+.authCard {
+  width: 100%;
+  max-width: 1000px;
 
-  border: 1px solid rgba(0,0,0,0.10);
+  /* ❌ height: 520px; 제거 */
+  min-height: 520px; /* 기본은 유지하되, 내용 많으면 늘어나게 */
+  height: auto;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  background: #ffffff;
   border-radius: 18px;
-  background: #fff;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
   overflow: hidden;
 }
 
-.loginLeft {
-  padding: 2.5rem 2rem;
-  display: grid;
+/* 왼쪽: 전체 파란 배경 제거 (파란색은 ImacMock 안의 파란 베이스만 보이게) */
+.authLeft {
+  background: #ffffff; /* ✅ 파란 그라데이션 제거 */
+  display: flex;
+  justify-content: center;
   align-items: center;
-  justify-items: center;
-  border-right: 1px solid rgba(0,0,0,0.06);
-  background: #ffffff;
+  padding: 36px;
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.loginRight {
-  padding: 2.5rem 2.5rem;
+/* 오른쪽 */
+.authRight {
+  padding: 52px 60px 44px 60px; /* 아래 공간 조금 확보 */
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-.loginHead {
-  margin-bottom: 1.25rem;
-}
-
-.loginTitle {
-  margin: 0;
-  font-size: 2.3rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-}
-
-.loginSub {
-  margin: 0.35rem 0 0;
-  color: #666;
-  font-size: 1rem;
-}
-
-.loginForm {
-  display: grid;
-  gap: 0.85rem;
-  margin-top: 0.5rem;
-}
-
-.input {
-  height: 44px;
-  padding: 0 0.9rem;
-  border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.22);
-  outline: none;
-  font-size: 1rem;
-  background: #fff;
-}
-
-.input:focus {
-  border-color: rgba(11, 43, 255, 0.65);
-  box-shadow: 0 0 0 3px rgba(11, 43, 255, 0.12);
-}
-
-.linkBtn {
-  justify-self: start;
-  font-size: 0.95rem;
-  color: #666;
-  padding: 0.2rem 0;
-}
-
-.linkBtn:hover {
-  color: #0b2bff;
-  text-decoration: underline;
-}
-
-.primaryBtn {
-  height: 46px;
-  border-radius: 8px;
-  font-weight: 900;
-  font-size: 1.05rem;
-  background: #0b2bff;
-  color: #fff;
-  text-align: center;
-  border: 1px solid rgba(0,0,0,0.08);
-}
-
-.primaryBtn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.divider {
-  height: 1px;
-  background: rgba(0,0,0,0.10);
-  margin: 0.7rem 0 0.2rem;
-}
-
-.ghostBtn {
-  height: 44px;
-  border-radius: 8px;
+/* 제목 */
+.authTitle {
+  font-size: 32px;
   font-weight: 800;
-  background: transparent;
-  border: 1px solid rgba(0,0,0,0.22);
+  margin-bottom: 8px;
+}
+
+.authSub {
+  font-size: 14px;
   color: #666;
-  text-align: center;
+  margin-bottom: 26px;
 }
 
-.ghostBtn:hover {
-  border-color: rgba(11, 43, 255, 0.45);
-  color: #0b2bff;
+/* 폼 */
+.authForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* 살짝 줄여서 아래 잘림 방지 */
 }
 
-.backBtn {
-  justify-self: start;
-  margin-top: 0.25rem;
-  color: #777;
+.authLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+}
+
+/* 인풋 */
+.authForm input {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #dcdcdc;
+  font-size: 14px;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.authForm input:focus {
+  outline: none;
+  border-color: #0b2bff;
+  box-shadow: 0 0 0 3px rgba(11, 43, 255, 0.15);
+}
+
+/* 버튼 기본 */
+.authBtn {
+  margin-top: 6px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.backBtn:hover {
+/* 로그인 버튼 */
+.authBtn.primary {
+  background: #0b2bff;
+  color: white;
+  border: none;
+}
+
+.authBtn.primary:hover {
+  background: #001eff;
+}
+
+/* 회원가입 버튼 */
+.authBtn.secondary {
+  background: #f3f3f3;
+  border: 1px solid #ddd;
+}
+
+.authBtn.secondary:hover {
+  background: #e9e9e9;
+}
+
+/* 비밀번호 찾기: 기본 HTML 느낌 제거 */
+.authTextLink {
+  align-self: flex-start;
+  padding: 0;
+  margin-top: 2px;
+
+  font-size: 13px;
+  font-weight: 700;
+  color: #667085;
+
+  background: none;
+  border: none;
+  text-decoration: none;
+
+  cursor: pointer;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.authTextLink:hover {
   color: #0b2bff;
+  transform: translateY(-1px);
 }
 
-@media (max-width: 64rem) {
-  .loginCard {
+.authTextLink:focus-visible {
+  outline: 3px solid rgba(11, 43, 255, 0.25);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* 처음으로: 아래로 밀려도 잘리지 않게 + 세련된 미니 버튼 */
+.authBack {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 6px 12px;
+
+  font-size: 13px;
+  font-weight: 700;
+  color: #344054;
+
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.authBack:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
+}
+
+.authBack:focus-visible {
+  outline: 3px solid rgba(11, 43, 255, 0.25);
+  outline-offset: 3px;
+}
+
+/* 반응형 */
+@media (max-width: 900px) {
+  .authCard {
     grid-template-columns: 1fr;
+    min-height: auto;
   }
-  .loginLeft {
-    border-right: 0;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
+
+  .authLeft {
+    display: none;
+  }
+
+  .authRight {
+    padding: 40px;
   }
 }
