@@ -1,0 +1,41 @@
+.imacMock {
+  width: 100%;
+}
+
+.imacMock__wrap {
+  position: relative;
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
+}
+
+.imacMock__wrap::before {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: -7%;
+  height: 12rem;
+
+  background: linear-gradient(180deg, #1236ff 0%, #0b2bff 60%, #0822cc 100%);
+  border-radius: 1.6rem;
+  z-index: 0;
+  box-shadow: 0 1.8rem 3.6rem rgba(11, 43, 255, 0.32);
+}
+
+.imacMock__imac {
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0.6rem 1.2rem rgba(0, 0, 0, 0.18));
+}
+
+.imacMock__screen {
+  position: absolute;
+  z-index: 2;
+  left: 14.2%;
+  top: 9%;
+  width: 71.6%;
+  height: 53.5%;
+  object-fit: contain;
+}
