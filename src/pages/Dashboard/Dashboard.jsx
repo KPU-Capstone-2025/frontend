@@ -1,6 +1,12 @@
 export default function Dashboard() {
   return (
-    <div style={{ maxWidth: 1200 }}>
+    <div
+      style={{
+        width: "100%",
+        maxWidth: 1600,   // ← 1200이 너무 작아서 오른쪽이 비어 보였음 (원하면 1800으로 더 키워도 됨)
+        margin: "0 auto", // ← 가운데 정렬 (왼쪽 붙는 느낌 제거)
+      }}
+    >
       <h2 style={{ margin: "6px 0 14px", fontSize: 22, fontWeight: 900, letterSpacing: "-0.02em" }}>
         실시간 모니터링 대시보드
       </h2>
