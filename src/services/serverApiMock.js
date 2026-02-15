@@ -6,7 +6,7 @@ function sleep(ms) {
 
 function maybeFail(rate = 0.08) {
   if (Math.random() < rate) {
-    const e = new Error("임시 오류가 발생했어. (목업) 재시도 해줘.");
+    const e = new Error("임시 오류 발생. (목업) 재시도.");
     e.code = "MOCK_FAIL";
     throw e;
   }

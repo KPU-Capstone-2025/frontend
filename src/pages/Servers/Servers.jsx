@@ -103,7 +103,7 @@ export default function Servers() {
           <div className="card__head">
             <div>
               <div className="card__title">서버 목록</div>
-              <div className="card__sub">서버를 클릭하면 상세 페이지로 이동해</div>
+              <div className="card__sub">서버를 클릭하면 상세 페이지로 이동</div>
             </div>
             <div className="chip">VPC: 10.0.0.0/16</div>
           </div>
