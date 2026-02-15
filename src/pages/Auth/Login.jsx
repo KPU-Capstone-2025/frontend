@@ -62,9 +62,14 @@ export default function Login() {
               로그인
             </button>
 
-            <button type="button" className="authBtn secondary">
-              회원가입
-            </button>
+            <button
+  type="button"
+  className="authBtn secondary"
+  onClick={() => navigate("/signup")}
+>
+  회원가입
+</button>
+
 
             <button
               type="button"

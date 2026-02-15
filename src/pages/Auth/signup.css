@@ -1,0 +1,178 @@
+.authCard.authCard--signup{
+  max-width: 760px;
+  grid-template-columns: 1fr;
+  min-height: auto;
+}
+
+.authRight.authRight--signup{
+  padding: 46px 48px 40px;
+}
+
+.signupForm{
+  display: grid;
+  gap: 16px;
+}
+
+.field{
+  display: grid;
+  gap: 10px;
+}
+
+.fieldLabel{
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.req{
+  color: #0b2bff;
+  font-weight: 900;
+}
+
+.signupForm input,
+.signupForm select{
+  height: 44px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(15,23,42,0.10);
+  background: #f1f3f6;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease, transform .05s ease;
+}
+
+.signupForm input::placeholder{
+  color: rgba(100,116,139,0.9);
+  font-weight: 650;
+}
+
+.signupForm input:focus,
+.signupForm select:focus{
+  outline: none;
+  background: #ffffff;
+  border-color: rgba(11,43,255,0.40);
+  box-shadow: 0 0 0 4px rgba(11,43,255,0.14);
+}
+
+.signupForm input:active{
+  transform: translateY(0.5px);
+}
+
+.hint{
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.phoneRow{
+  display: grid;
+  grid-template-columns: 92px 14px 1fr 14px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.dash{
+  text-align: center;
+  color: #94a3b8;
+  font-weight: 900;
+}
+
+.birthRow{
+  display: grid;
+  grid-template-columns: 1fr 18px 1fr 18px 1fr 18px;
+  align-items: center;
+  gap: 8px;
+}
+
+.unit{
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 900;
+  text-align: center;
+}
+
+.agreeBox{
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(15,23,42,0.08);
+}
+
+.checkRow{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 12px 0;
+  font-size: 13px;
+  font-weight: 750;
+  color: #0f172a;
+
+  border-bottom: 1px solid rgba(15,23,42,0.05);
+}
+
+.checkRow--all{
+  font-weight: 900;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(15,23,42,0.08);
+}
+
+.checkRow--sub{
+  font-weight: 700;
+  color: #475569;
+  padding-left: 14px;
+}
+
+.checkRow input{
+  width: 16px;
+  height: 16px;
+  accent-color: #0b2bff;
+}
+
+.agreeList{
+  padding-top: 6px;
+}
+
+.errorText{
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ef4444;
+}
+
+.okText{
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 900;
+  color: #16a34a;
+}
+
+.submitError{
+  margin-top: 6px;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.18);
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.authBtn.primary{
+  margin-top: 10px;
+  height: 46px;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(11,43,255,0.18);
+}
+
+.authBtn.primary:disabled{
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}

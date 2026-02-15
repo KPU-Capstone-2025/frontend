@@ -2,17 +2,17 @@ import { createBrowserRouter } from "react-router-dom";
 
 import Landing from "../pages/Landing/Landing.jsx";
 import Login from "../pages/Auth/Login.jsx";
+import Signup from "../pages/Auth/Signup.jsx";
 
 import AppLayout from "../layouts/AppLayout.jsx";
 import Dashboard from "../pages/Dashboard/Dashboard.jsx";
 
-function NotFound() {
-  return <div style={{ padding: 24 }}>Not Found</div>;
-}
+import NotFound from "../pages/NotFound.jsx";
 
 export const router = createBrowserRouter([
   { path: "/", element: <Landing /> },
   { path: "/login", element: <Login /> },
+  { path: "/signup", element: <Signup /> },
 
   {
     element: <AppLayout />,

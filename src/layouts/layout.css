@@ -37,23 +37,41 @@
 .brand{
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 10px 14px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   margin-bottom: 14px;
 }
 
+/* 로고 박스: 커지고, 안 잘리게 */
 .brand__logo{
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  background: rgba(11,43,255,0.18);
-  border: 1px solid rgba(11,43,255,0.35);
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
   display: grid;
   place-items: center;
-  color: #fff;
-  font-weight: 900;
+  overflow: hidden;
 }
+
+/* 핵심: contain으로 "안 잘리게" + 패딩으로 여백 */
+.brand__logoImg{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;      /* cover ❌ -> contain ✅ */
+  padding: 6px;             /* 안쪽 여백 (로고가 숨 쉬게) */
+  filter: brightness(1.08) contrast(1.12);
+}
+
+
+.brand__logoImg{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;                        /* 네모에 꽉 차게 */
+  transform: scale(1.2);                   /* 살짝 꽉 차는 느낌 (원하면 1.0) */
+}
+
 
 .brand__txt{
   display: grid;
