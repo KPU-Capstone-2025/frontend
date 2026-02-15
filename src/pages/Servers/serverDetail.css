@@ -1,0 +1,220 @@
+.serverDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sdHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sdHeaderLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sdTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sdTitle {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.sdSub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.sdDot {
+  margin: 0 8px;
+  opacity: 0.6;
+}
+
+.sdRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sdPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sdPill--ok {
+  background: rgba(0, 255, 153, 0.08);
+  border-color: rgba(0, 255, 153, 0.25);
+}
+
+.sdPill--warn {
+  background: rgba(255, 204, 0, 0.08);
+  border-color: rgba(255, 204, 0, 0.25);
+}
+
+.sdPill--down {
+  background: rgba(255, 92, 92, 0.09);
+  border-color: rgba(255, 92, 92, 0.25);
+}
+
+.sdGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 14px;
+}
+
+.sdSpan2 {
+  grid-column: 1 / -1;
+}
+
+.metricStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sdActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sdHintChip {
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.skeleton {
+  min-height: 200px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.03)
+  );
+  animation: shimmer 1.2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-60%);
+  }
+  100% {
+    transform: translateX(60%);
+  }
+}
+
+/* 서버 상세 페이지는 메인 컨텐츠가 밝은 배경이라,
+   기존(다크톤) 스타일 때문에 글씨가 하얗게 보이는 문제를 여기서만 잡아준다 */
+
+.serverDetail {
+  color: #0f172a;
+}
+
+.serverDetail .sdSub {
+  color: rgba(15, 23, 42, 0.62);
+}
+
+.serverDetail .sdDot {
+  opacity: 0.5;
+}
+
+.serverDetail .sdHintChip {
+  color: rgba(15, 23, 42, 0.8);
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(15, 23, 42, 0.04);
+}
+
+/* 상단 상태 pill은 기존 톤 유지하되 글씨만 잘 보이게 */
+.serverDetail .sdPill {
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(15, 23, 42, 0.04);
+}
+
+/* PeriodTabs(기간 버튼) 밝은 배경용 */
+.serverDetail .tabs {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(15, 23, 42, 0.04);
+}
+.serverDetail .tabs__btn {
+  color: rgba(15, 23, 42, 0.72);
+}
+.serverDetail .tabs__btn.isOn {
+  background: rgba(15, 23, 42, 0.10);
+  color: rgba(15, 23, 42, 0.92);
+}
+
+/* 버튼 밝은 배경용 */
+.serverDetail .btn {
+  color: rgba(15, 23, 42, 0.92);
+  border-color: rgba(15, 23, 42, 0.14);
+  background: rgba(15, 23, 42, 0.04);
+}
+.serverDetail .btn:hover {
+  background: rgba(15, 23, 42, 0.07);
+  border-color: rgba(15, 23, 42, 0.18);
+}
+.serverDetail .btn--primary {
+  background: rgba(37, 99, 235, 0.10);
+  border-color: rgba(37, 99, 235, 0.22);
+}
+
+/* MetricLine(지표 카드) 텍스트/라인 밝은 배경용 */
+.serverDetail .metricLine {
+  border-color: rgba(15, 23, 42, 0.10);
+  background: rgba(15, 23, 42, 0.03);
+}
+.serverDetail .metricLine__nums {
+  color: rgba(15, 23, 42, 0.58);
+}
+.serverDetail .sparkLine {
+  stroke: rgba(15, 23, 42, 0.35);
+}
+
+/* 컨테이너 테이블 글자 보이게 */
+.serverDetail .ctTable th {
+  color: rgba(15, 23, 42, 0.55);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+.serverDetail .ctTable td {
+  color: rgba(15, 23, 42, 0.90);
+  border-bottom-color: rgba(15, 23, 42, 0.06);
+}
+.serverDetail .ctMeta,
+.serverDetail .infoSub,
+.serverDetail .eventRow__ts {
+  color: rgba(15, 23, 42, 0.58);
+}
+
+/* 선택된 행이 너무 연하면 살짝 강조 */
+.serverDetail .ctRow.isActive {
+  background: rgba(37, 99, 235, 0.08);
+}
+

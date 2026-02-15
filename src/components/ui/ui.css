@@ -1,0 +1,175 @@
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+.btn {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: rgba(68, 140, 255, 0.18);
+  border-color: rgba(68, 140, 255, 0.35);
+}
+
+.btn--primary:hover {
+  background: rgba(68, 140, 255, 0.24);
+  border-color: rgba(68, 140, 255, 0.45);
+}
+
+.btn--ghost {
+  background: transparent;
+}
+
+.tabs {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  gap: 4px;
+}
+
+.tabs__btn {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tabs__btn.isOn {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.tabs--disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.metricLine {
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.metricLine__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.metricLine__title {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.metricLine__nums {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metricLine__unit {
+  margin-left: 2px;
+  opacity: 0.8;
+}
+
+.metricLine__sep {
+  opacity: 0.5;
+}
+
+.metricLine__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.metricLine__bar {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.metricLine__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(68, 140, 255, 0.7);
+}
+
+.metricLine__spark {
+  width: 240px;
+  height: 40px;
+  opacity: 0.95;
+}
+
+.sparkLine {
+  stroke: rgba(255, 255, 255, 0.62);
+  stroke-width: 2;
+}
+
+.empty {
+  display: flex;
+  justify-content: center;
+  padding: 30px 10px;
+}
+
+.empty__box {
+  width: 100%;
+  max-width: 520px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 18px;
+}
+
+.empty__title {
+  font-weight: 900;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.empty__desc {
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.empty__actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+}
