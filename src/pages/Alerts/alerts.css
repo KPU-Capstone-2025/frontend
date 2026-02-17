@@ -1,0 +1,299 @@
+.alertsPage{
+  padding: 18px 18px 26px;
+  background: var(--bg);
+  min-height: calc(100vh - 64px);
+  color: var(--text);
+}
+
+.alertsWrap{
+  width: 100%;
+  max-width: var(--contentMax);
+  margin: 0 auto;
+}
+
+.alertsTitle{
+  margin: 6px 0 6px;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.alertsDesc{
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.panel{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radiusLg);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+
+.panel + .panel{
+  margin-top: 14px;
+}
+
+.panelHead{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.panelTitleRow{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panelIcon{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(11,43,255,0.12);
+  border: 1px solid rgba(11,43,255,0.20);
+  color: var(--blue);
+  font-weight: 900;
+}
+
+.panelTitle{
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.panelSub{
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.panelActions{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn{
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,42,0.14);
+  background: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.btn:active{ transform: translateY(1px); }
+
+.btnPrimary{
+  background: var(--blue);
+  border-color: rgba(11,43,255,0.35);
+  color: #fff;
+}
+
+.btnBlack{
+  background: #0b1220;
+  border-color: rgba(0,0,0,0.12);
+  color: #fff;
+}
+
+.cardInner{
+  border-radius: 18px;
+  border: 1px solid rgba(15,23,42,0.10);
+  background: #fff;
+  padding: 14px;
+}
+
+.segTabs{
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  background: rgba(15,23,42,0.06);
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(15,23,42,0.08);
+  margin: 6px 0 14px;
+}
+
+.segTab{
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-weight: 900;
+  color: rgba(15,23,42,0.68);
+  cursor: pointer;
+
+  display: flex;               /* 가운데 정렬을 확실하게 하기 위해 flex 사용 */
+  align-items: center;
+  justify-content: center;     /* 텍스트 완전 중앙 정렬 */
+  text-align: center;
+}
+
+
+.segTab.isOn{
+  background: #fff;
+  border-color: rgba(15,23,42,0.10);
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(15,23,42,0.08);
+}
+
+.grid2{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.grid2 + .grid2{ margin-top: 10px; }
+
+.field{
+  display: grid;
+  gap: 7px;
+}
+
+.fieldLabel{
+  font-size: 12px;
+  font-weight: 900;
+  color: rgba(15,23,42,0.78);
+}
+
+.fieldHint{
+  margin-top: -3px;
+  font-size: 11px;
+  color: rgba(15,23,42,0.55);
+}
+
+.inputRow{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.numInput{
+  width: 100%;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(15,23,42,0.06);
+  border: 1px solid rgba(15,23,42,0.10);
+  padding: 0 12px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.unit{
+  color: rgba(15,23,42,0.58);
+  font-weight: 900;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.suffix{
+  margin-left: auto;
+  color: rgba(15,23,42,0.45);
+  font-weight: 900;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.checkRow{
+  display: flex;
+  align-items: flex-start;   /* 위쪽 기준 정렬 */
+  gap: 10px;
+  margin-top: 16px;
+  padding-left: 2px;        /* 인풋 시작선이랑 맞추려고 살짝 보정 */
+}
+
+
+.checkRow input{ width: 16px; height: 16px; }
+
+.checkTxt{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;        /* 혹시 모를 가운데 정렬 방지 */
+}
+
+.checkTitle{
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.checkSub{
+  font-size: 11px;
+  color: rgba(15,23,42,0.55);
+}
+
+.dockerEmpty{
+  border-radius: 18px;
+  border: 1px dashed rgba(15,23,42,0.18);
+  padding: 22px 18px;
+  display: grid;
+  place-items: center;
+  color: rgba(15,23,42,0.55);
+  gap: 10px;
+}
+
+.cube{
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  border: 1px solid rgba(15,23,42,0.12);
+  display: grid;
+  place-items: center;
+  color: rgba(15,23,42,0.45);
+  font-weight: 900;
+}
+
+.checkRowFull{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dockerList{ display: grid; gap: 12px; }
+
+.containerCard{
+  border-radius: 18px;
+  border: 1px solid rgba(15,23,42,0.10);
+  background: #fff;
+  padding: 14px;
+}
+
+.containerHead{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.containerTitle{
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.iconBtn{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,42,0.12);
+  background: #fff;
+  cursor: pointer;
+}
+
+.iconBtn:hover{ background: rgba(15,23,42,0.04); }
+
+.nameBlock{ display: grid; gap: 6px; margin-bottom: 12px; }
+
+.footerActions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}

@@ -9,6 +9,7 @@ import Signup from "../pages/Auth/Signup.jsx";
 
 import Dashboard from "../pages/Dashboard/Dashboard.jsx";
 import ServerDetail from "../pages/Servers/ServerDetail.jsx";
+import Alerts from "../pages/Alerts/Alerts.jsx";
 
 import NotFound from "../pages/NotFound.jsx";
 
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
     children: [
       { path: "/dashboard", element: <Dashboard /> },
       { path: "/servers/:serverId", element: <ServerDetail /> },
+      { path: "/alerts", element: <Alerts /> },
     ],
   },
   { path: "*", element: <NotFound /> },
