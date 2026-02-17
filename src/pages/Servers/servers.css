@@ -1,0 +1,121 @@
+/* 서버 목록 페이지 스타일
+   지금까지 쓰던 panel/card 느낌이랑 통일되게 잡아둠 */
+
+.serversPage{
+  padding: 18px 18px 26px;
+  background: var(--bg);
+  min-height: calc(100vh - 64px);
+  color: var(--text);
+}
+
+.serversWrap{
+  width: 100%;
+  max-width: var(--contentMax);
+  margin: 0 auto;
+}
+
+.serversTitle{
+  margin: 6px 0 6px;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.serversDesc{
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.serverGrid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.serverCard{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radiusLg);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.serverCard:hover{
+  transform: translateY(-1px);
+}
+
+.cardTop{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardLeft{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.serverName{
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.serverMeta{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: rgba(15,23,42,0.65);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cardRight{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pill{
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  border: 1px solid rgba(15,23,42,0.10);
+}
+
+.pill--good{
+  background: rgba(34,197,94,0.12);
+  border-color: rgba(34,197,94,0.22);
+  color: #166534;
+}
+
+.pill--warn{
+  background: rgba(245,158,11,0.12);
+  border-color: rgba(245,158,11,0.22);
+  color: #92400e;
+}
+
+.pill--bad{
+  background: rgba(239,68,68,0.10);
+  border-color: rgba(239,68,68,0.22);
+  color: #b91c1c;
+}
+
+.gotoBtn{
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,42,0.12);
+  background: #fff;
+  font-weight: 900;
+}
+
+.gotoBtn:active{ transform: translateY(1px); }

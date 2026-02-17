@@ -26,7 +26,7 @@ export default function SideNav({ open, onClose }) {
           <NavItem to="/dashboard" icon="📊" label="대시보드" />
           <NavItem to="/servers/a" icon="🖥️" label="서버 상세" />
 
-          <NavItem to="/logs" icon="📄" label="로그 분석" badge="준비중" />
+          <NavItem to="/logs" icon="📄" label="로그 분석"  />
           <NavItem to="/alerts" icon="🔔" label="알림 설정" />
         </nav>
 

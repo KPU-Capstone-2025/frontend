@@ -9,7 +9,10 @@ import Signup from "../pages/Auth/Signup.jsx";
 
 import Dashboard from "../pages/Dashboard/Dashboard.jsx";
 import ServerDetail from "../pages/Servers/ServerDetail.jsx";
+import Servers from "../pages/Servers/Servers.jsx";
+
 import Alerts from "../pages/Alerts/Alerts.jsx";
+import Logs from "../pages/Logs/Logs.jsx";
 
 import NotFound from "../pages/NotFound.jsx";
 
@@ -26,8 +29,11 @@ export const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { path: "/dashboard", element: <Dashboard /> },
+      { path: "/servers", element: <Servers /> },
       { path: "/servers/:serverId", element: <ServerDetail /> },
+
       { path: "/alerts", element: <Alerts /> },
+      { path: "/logs", element: <Logs /> },
     ],
   },
   { path: "*", element: <NotFound /> },
