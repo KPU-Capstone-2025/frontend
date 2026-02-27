@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import SideNav from "../components/navigation/SideNav.jsx";
 import TopBar from "../components/navigation/TopBar.jsx";
 import "./layout.css";
+//왼쪽 sideNav  위  TopBar 가운데 Outlet / 
 
 const TITLE_MAP = {
   "/dashboard": { title: "대시보드", desc: "전체 서버 현황을 한눈에 확인합니다." },

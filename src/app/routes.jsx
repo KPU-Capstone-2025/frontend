@@ -1,3 +1,4 @@
+//어떤 url에서 어떤 페이지를 보여줄지 정의하는 파일 
 import { createBrowserRouter } from "react-router-dom";
 
 import PublicLayout from "../layouts/PublicLayout.jsx";
