@@ -29,3 +29,11 @@ export function getCompanies() {
 export function getDashboardSummary(companyId) {
   return request("/dashboard/summary", { query: { companyId } });
 }
+
+/**
+ * ✅ 로그 조회
+ * 백엔드: GET /api/monitoring/logs?companyId=...&limit=...
+ */
+export function getLogs(companyId, { limit = 200 } = {}) {
+  return request("/logs", { query: { companyId, limit } });
+}
