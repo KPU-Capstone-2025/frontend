@@ -1,6 +1,9 @@
 /* =========================
-   Base
+   Landing (continuous scroll + reveal)
+   - 기존 스타일 톤 유지(블루 포인트, 카드형)
+   - 섹션을 "딱" 끊지 않고 자연스럽게 이어지게
    ========================= */
+
 * {
   box-sizing: border-box;
 }
@@ -12,94 +15,70 @@ body {
   color: #111;
 }
 
-/* 이미지 렌더링 */
 img {
   image-rendering: auto;
 }
 
-/* =========================
-   Section 1 (Hero)
-   ========================= */
-.page {
+/* ===== Layout ===== */
+
+.landingRoot {
+  width: 100%;
+  background: #fff;
+}
+
+.lp-container {
+  width: min(96rem, 92vw);
+  margin: 0 auto;
+}
+
+.lp-section {
+  position: relative;
+  padding: 6.5rem 0;
+}
+
+.lp-hero {
   min-height: 100vh;
-  width: 100%;
-  display: flex;
-  align-items: center;
-}
-
-.hero {
-  width: min(96rem, 96vw);
-  margin: 0 auto;
-
+  padding: 0;
   display: grid;
-  grid-template-columns: 1.25fr 0.75fr;
-  gap: 6rem;
+  align-items: center;
+  overflow: hidden;
+
+  /* inspien 느낌 참고: 어두운 배경 + 은은한 블루 글로우 */
+  background:
+    radial-gradient(1200px 700px at 20% 40%, rgba(11, 43, 255, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 80% 30%, rgba(11, 43, 255, 0.10), transparent 60%),
+    linear-gradient(180deg, #070a16 0%, #0b1026 70%, #0a0d1a 100%);
+  color: #fff;
+}
+
+.heroGrid {
+  padding: 6.5rem 0;
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 3.5rem;
   align-items: center;
 }
 
-.hero__panel {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1.8rem;
+.heroCopy {
+  max-width: 44rem;
 }
 
-/* =========================
-   iMac Mockup
-   ========================= */
-.imacWrap {
-  position: relative;
-  width: 100%;
-  max-width: 52rem;
-  margin: 0 auto;
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.1rem;
 }
 
-/* 파란 베이스 */
-.imacWrap::before {
-  content: "";
-  position: absolute;
-
-  left: 6%;
-  right: 6%;
-  bottom: -7%;
-  height: 12rem;
-
-  /* 단색보다 입체감 있게 */
-  background: linear-gradient(180deg, #1236ff 0%, #0b2bff 60%, #0822cc 100%);
-
-  border-radius: 1.6rem;
-  z-index: 0;
-  box-shadow: 0 1.8rem 3.6rem rgba(11, 43, 255, 0.32);
-}
-
-.imac {
-  width: 100%;
-  position: relative;
-  z-index: 1;
-
-  /* 경계 살리기 */
-  filter: drop-shadow(0 0.6rem 1.2rem rgba(0, 0, 0, 0.18));
-}
-
-/* iMac 안 대시보드 화면 */
-.screen {
-  position: absolute;
-  z-index: 2;
-
-  left: 14.2%;
-  top: 9%;
-  width: 71.6%;
-  height: 53.5%;
-
-  object-fit: contain;
-  background: transparent;
-}
-
-/* =========================
-   Title / Logo / Desc
-   ========================= */
 .title {
-  font-size: clamp(2.8rem, 4.8vw, 4.2rem);
+  font-size: clamp(2.6rem, 4.2vw, 4rem);
   font-weight: 900;
   line-height: 1.1;
   margin: 0;
@@ -110,226 +89,148 @@ img {
   color: #0b2bff;
 }
 
-.titleLogo {
-  display: inline-block;
-  width: 1.05em;
-  height: auto;
-  vertical-align: middle;
-  margin-left: 0.5rem;
-  transform: translateY(-0.08em);
+.lead {
+  margin: 1.2rem 0 0;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.85;
+  font-size: 1.05rem;
+  max-width: 40rem;
 }
 
-.desc {
+.pillList {
   list-style: none;
   padding: 0;
-  margin: 0; /* hero__panel gap으로 간격 관리 */
-  font-size: 1.15rem;
-  line-height: 1.9;
-  color: #555;
+  margin: 1.6rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
 }
-.top__login{
+
+.pillList li {
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.86);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.ctaRow {
+  margin-top: 2rem;
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.btnPrimary,
+.btnGhost {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-
-  padding: 0.9rem 2rem;
-  font-size: 1.1rem;
-  font-weight: 700;
- margin-top: 3rem; /* ← 이 값만 조절 */
-  border-radius: 0.9rem;
-  border: 1px solid rgba(0,0,0,0.08);
-
-  background: transparent;
-  color: #111;
-
+  padding: 0.95rem 1.4rem;
+  border-radius: 0.95rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-.top__login:hover{
+.btnPrimary {
   background: #0b2bff;
   color: #fff;
-  border-color: #0b2bff;
+  border: 1px solid rgba(11, 43, 255, 0.6);
 }
 
-.userIcon{
-  font-size: 1rem;     /* 글자보다 살짝 작게 */
-  opacity: 0.75;       /* 튀지 않게 */
+.btnPrimary:hover {
+  transform: translateY(-1px);
+  background: #0624f6;
 }
 
-/* =========================
-   Fullpage Sections (2,3...)
-   ========================= */
-.fullpage {
-  height: 100vh;
-  overflow: hidden; /* 데스크탑에서 휠 가로채기용 */
+.btnGhost {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
-.fp-section {
-  height: 100vh;
-  width: 100%;
+.btnGhost:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.fp-inner {
-  width: min(80rem, 92vw);
-  margin: 0 auto;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+/* ===== iMac mock 반응형(컴포넌트 클래스에 맞춤) ===== */
+
+.imacMock__wrap {
+  max-width: 52rem;
 }
 
-.fp-title {
-  font-size: clamp(2rem, 3vw, 3rem);
-  margin: 0 0 1rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-}
+/* ===== Scroll hint ===== */
 
-.fp-text {
-  margin: 0 0 2.2rem;
-  color: #666;
-  line-height: 1.8;
-  max-width: 46rem;
-}
-
-.fp-cards {
+.scrollHint {
+  position: absolute;
+  left: 50%;
+  bottom: 1.6rem;
+  transform: translateX(-50%);
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.78);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.25rem;
+  justify-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
-.fp-card {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 1.1rem;
-  padding: 1.5rem;
-  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.06);
+.scrollHint.hide {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(6px);
 }
 
-.fp-card__t {
-  font-weight: 900;
-  margin-bottom: 0.5rem;
+.mouse {
+  width: 1.2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  position: relative;
 }
 
-.fp-card__d {
-  color: #666;
-  line-height: 1.6;
+.mouse::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0.45rem;
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.65);
+  transform: translateX(-50%);
+  animation: wheel 1.4s ease-in-out infinite;
 }
 
-.intro {
-  background: #fff;
-}
-
-.feature {
-  background: rgba(11, 43, 255, 0.03);
-}
-
-/* =========================
-   Responsive
-   ========================= */
-
-/* 태블릿 이하: 2열 -> 1열 */
-@media (max-width: 64rem) {
-  .page {
-    padding: 3rem 0;
-    align-items: flex-start;
+@keyframes wheel {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-2px);
   }
-
-  .hero {
-    width: min(56rem, 92vw);
-    grid-template-columns: 1fr;
-    gap: 3.5rem;
+  40% {
+    opacity: 1;
   }
-
-  .imacWrap {
-    max-width: 44rem;
-  }
-
-  .imacWrap::before {
-    height: 10rem;
-    bottom: -8%;
-    left: 10%;
-    right: 10%;
-    border-radius: 1.3rem;
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
   }
 }
 
-/* 모바일 (필요있나 싶긴함) */
-@media (max-width: 48rem) {
-  .page {
-    padding: 2.25rem 0;
-  }
-
-  .hero {
-    width: 92vw;
-    gap: 2.5rem;
-  }
-
-  .imacWrap {
-    max-width: 92vw;
-  }
-
-  .imacWrap::before {
-    height: 8.5rem;
-    bottom: -10%;
-    left: 12%;
-    right: 12%;
-    border-radius: 1.1rem;
-  }
-
-  .title {
-    font-size: clamp(2.2rem, 8vw, 3.2rem);
-    line-height: 1.08;
-  }
-
-  .titleLogo {
-    width: 1em;
-    margin-left: 0.35rem;
-    transform: translateY(-0.05em);
-  }
-
-  .desc {
-    font-size: 1rem;
-    line-height: 1.75;
-  }
-
-  .top__login {
-    font-size: 1.1rem;
-    padding: 1rem 2.2rem;
-    border-radius: 0.9rem;
-  }
+.scrollText {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
 }
 
-/* 아주 작은 화면 */
-@media (max-width: 26rem) {
-  .title {
-    font-size: 2rem;
-  }
-  .desc {
-    font-size: 0.95rem;
-  }
-}
-
-/* 모바일/태블릿: 풀페이지 강제 스크롤은 끄고 일반 스크롤 */
-@media (max-width: 63.999rem) {
-  .fullpage {
-    height: auto;
-    overflow: visible;
-  }
-
-  .fp-section {
-    height: auto;
-    padding: 4rem 0;
-  }
-
-  .fp-cards {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* =========================
-   Section 2/3 Content Blocks
-   ========================= */
+/* ===== Shared section headings ===== */
 
 .sec {
   gap: 2.2rem;
@@ -354,15 +255,66 @@ img {
   font-size: 1.05rem;
 }
 
-.sec2 {
+.lp-problem {
   background: #fff;
 }
 
-.sec3 {
+.lp-features {
   background: rgba(11, 43, 255, 0.03);
 }
 
+.lp-flow {
+  background: #fff;
+}
+
+.lp-cta {
+  background: rgba(11, 43, 255, 0.03);
+}
+
+/* ===== Problem cards ===== */
+
+.problemGrid {
+  margin-top: 2.2rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.pCard {
+  border-radius: 1.1rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  padding: 1.25rem 1.15rem;
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.05);
+}
+
+.pIcon {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.9rem;
+  display: grid;
+  place-items: center;
+  background: rgba(11, 43, 255, 0.10);
+  color: #0b2bff;
+  font-size: 1.2rem;
+  margin-bottom: 0.8rem;
+}
+
+.pT {
+  font-weight: 900;
+  margin-bottom: 0.35rem;
+}
+
+.pD {
+  color: #666;
+  line-height: 1.6;
+  font-size: 0.98rem;
+}
+
+/* ===== Features (기존 카드/샷 스타일 유지) ===== */
+
 .grid2 {
+  margin-top: 2.2rem;
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
   gap: 2.2rem;
@@ -379,9 +331,9 @@ img {
   gap: 1rem;
   padding: 1.1rem 1.1rem;
   border-radius: 1.1rem;
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   background: #fff;
-  box-shadow: 0 1rem 2rem rgba(0,0,0,0.05);
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.05);
 }
 
 .ficon {
@@ -390,12 +342,15 @@ img {
   border-radius: 0.9rem;
   display: grid;
   place-items: center;
-  background: rgba(11,43,255,0.10);
+  background: rgba(11, 43, 255, 0.10);
   color: #0b2bff;
   flex: 0 0 auto;
 }
 
-.ficon svg { width: 1.4rem; height: 1.4rem; }
+.ficon svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
 
 .fcard__t {
   font-weight: 900;
@@ -416,8 +371,8 @@ img {
 .shot__frame {
   border-radius: 1.25rem;
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.08);
-  box-shadow: 0 1.6rem 3.2rem rgba(0,0,0,0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1.6rem 3.2rem rgba(0, 0, 0, 0.08);
   background: #0b0f1a;
 }
 
@@ -435,90 +390,237 @@ img {
 
 .stat {
   border-radius: 1rem;
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   background: #fff;
   padding: 0.9rem 1rem;
 }
 
-.stat__k { color: #0b2bff; font-weight: 900; margin-bottom: 0.2rem; }
-.stat__v { color: #222; font-weight: 800; }
+.stat__k {
+  color: #0b2bff;
+  font-weight: 900;
+  margin-bottom: 0.2rem;
+}
 
-/* Flow */
+.stat__v {
+  color: #222;
+  font-weight: 800;
+}
+
+/* ===== Flow ===== */
+
 .flow {
+  margin-top: 2.2rem;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
-  align-items: center;
-  margin-top: 0.4rem;
+  align-items: stretch;
 }
 
 .step {
   border-radius: 1.1rem;
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   background: #fff;
   padding: 1.1rem 1.1rem;
-  box-shadow: 0 1rem 2rem rgba(0,0,0,0.05);
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.05);
 }
 
-.step__n { color: rgba(11,43,255,0.9); font-weight: 900; }
-.step__t { font-size: 1.1rem; font-weight: 900; margin: 0.35rem 0 0.35rem; }
-.step__d { color: #666; line-height: 1.55; font-size: 0.95rem; }
-
-.arrow {
-  display: none; /* grid 4칸이라 화살표는 생략. 필요하면 true로 바꾸기 */
+.step__n {
+  color: rgba(11, 43, 255, 0.9);
+  font-weight: 900;
 }
 
-/* Architecture */
+.step__t {
+  font-size: 1.1rem;
+  font-weight: 900;
+  margin: 0.35rem 0 0.35rem;
+}
+
+.step__d {
+  color: #666;
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
+/* ===== Architecture ===== */
+
 .arch {
-  margin-top: 1.6rem;
+  margin-top: 1.8rem;
   display: grid;
   grid-template-columns: 1fr 0.7fr 1fr;
   gap: 1.2rem;
   align-items: center;
 }
 
-.arch__col { display: grid; gap: 0.8rem; }
+.arch__col {
+  display: grid;
+  gap: 0.8rem;
+}
+
 .arch__box {
   border-radius: 1.1rem;
-  border: 1px solid rgba(0,0,0,0.10);
+  border: 1px solid rgba(0, 0, 0, 0.10);
   background: #fff;
   padding: 1.1rem 1.1rem;
-  box-shadow: 0 1rem 2rem rgba(0,0,0,0.05);
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.05);
 }
+
 .arch__box.ghost {
-  background: rgba(255,255,255,0.65);
+  background: rgba(255, 255, 255, 0.65);
 }
 
-.arch__h { font-weight: 900; margin-bottom: 0.2rem; }
-.arch__p { color: #666; line-height: 1.6; }
+.arch__h {
+  font-weight: 900;
+  margin-bottom: 0.2rem;
+}
 
-.arch__hint { color: #0b2bff; font-weight: 800; }
+.arch__p {
+  color: #666;
+  line-height: 1.6;
+}
+
+.arch__hint {
+  color: #0b2bff;
+  font-weight: 800;
+}
 
 .arch__mid {
   display: grid;
   gap: 0.8rem;
-  justify-items: stretch;
 }
 
 .arch__pipe {
   border-radius: 999px;
   padding: 0.8rem 1rem;
-  background: rgba(11,43,255,0.10);
+  background: rgba(11, 43, 255, 0.10);
   color: #0b2bff;
   font-weight: 900;
   text-align: center;
-  border: 1px solid rgba(11,43,255,0.18);
+  border: 1px solid rgba(11, 43, 255, 0.18);
 }
 
-/* Responsive */
-@media (max-width: 64rem) {
-  .grid2 { grid-template-columns: 1fr; }
-  .flow { grid-template-columns: 1fr 1fr; }
-  .arch { grid-template-columns: 1fr; }
-  .arch__mid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* ===== CTA ===== */
+
+.ctaBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  padding: 1.4rem 1.4rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  box-shadow: 0 1.6rem 3.2rem rgba(0, 0, 0, 0.06);
 }
+
+.ctaTitle {
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.ctaSub {
+  margin-top: 0.35rem;
+  color: #666;
+  line-height: 1.7;
+}
+
+.footerNote {
+  margin-top: 1.2rem;
+  color: rgba(0, 0, 0, 0.45);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* ===== Reveal animation ===== */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+  will-change: transform, opacity;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 64rem) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+    padding: 5rem 0;
+  }
+
+  .imacMock__wrap {
+    max-width: 44rem;
+  }
+
+  .imacMock__wrap::before {
+    height: 10rem;
+    bottom: -8%;
+    left: 10%;
+    right: 10%;
+    border-radius: 1.3rem;
+  }
+
+  .problemGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+
+  .flow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .arch {
+    grid-template-columns: 1fr;
+  }
+
+  .arch__mid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 48rem) {
-  .stats { grid-template-columns: 1fr; }
-  .flow { grid-template-columns: 1fr; }
-  .arch__mid { grid-template-columns: 1fr; }
+  .lp-section {
+    padding: 4.5rem 0;
+  }
+
+  .imacMock__wrap {
+    max-width: 92vw;
+  }
+
+  .imacMock__wrap::before {
+    height: 8.5rem;
+    bottom: -10%;
+    left: 12%;
+    right: 12%;
+    border-radius: 1.1rem;
+  }
+
+  .problemGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .flow {
+    grid-template-columns: 1fr;
+  }
+
+  .arch__mid {
+    grid-template-columns: 1fr;
+  }
+
+  .ctaBox {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
