@@ -10,7 +10,7 @@ import section2 from "../../assets/images/색션2.jpg";
 export default function Landing() {
   const navigate = useNavigate();
 
-  // 스크롤 기반 등장 애니메이션
+  // 스크롤 기반 "슬라이딩(등장)" 애니메이션
   useEffect(() => {
     const els = Array.from(document.querySelectorAll(".reveal"));
     if (els.length === 0) return;
@@ -46,12 +46,11 @@ export default function Landing() {
 
   return (
     <div className="landingRoot">
-      {/* ===== HERO (LIGHT) ===== */}
+      {/* ===== HERO ===== */}
       <section className="lp-section lp-hero" aria-label="Hero">
         <div className="lp-container heroGrid">
           <div className="heroCopy reveal">
             <div className="badge">AI 기반 통합 관측</div>
-
             <h1 className="title">
               <span className="blue">실시간</span> 서버 모니터링
               <br />
@@ -102,8 +101,8 @@ export default function Landing() {
           <div className="sec__head reveal">
             <h2 className="sec__title">운영자는 늘 “문제”를 늦게 봅니다</h2>
             <p className="sec__sub">
-              지표와 로그가 흩어져 있으면 장애 원인 파악과 대응이 늦어집니다.
-              운영자가 즉시 판단할 수 있는 화면을 제공합니다.
+              지표와 로그가 흩어져 있으면, 장애 원인 파악과 대응이 늦어집니다.
+              우리는 운영자가 즉시 판단할 수 있는 화면을 제공합니다.
             </p>
           </div>
 
@@ -116,12 +115,12 @@ export default function Landing() {
             <div className="pCard reveal" style={{ transitionDelay: "80ms" }}>
               <div className="pIcon">🧩</div>
               <div className="pT">도구 분산</div>
-              <div className="pD">모니터링/로그/알림이 분리돼 흐름이 끊김</div>
+              <div className="pD">모니터링/로그/알림이 각각 달라 흐름이 끊김</div>
             </div>
             <div className="pCard reveal" style={{ transitionDelay: "160ms" }}>
               <div className="pIcon">🔎</div>
               <div className="pT">원인 파악 어려움</div>
-              <div className="pD">로그 검색·필터가 복잡해 핵심만 보기 어려움</div>
+              <div className="pD">로그 검색·필터가 복잡해 핵심만 보기 힘듦</div>
             </div>
             <div className="pCard reveal" style={{ transitionDelay: "240ms" }}>
               <div className="pIcon">📣</div>
@@ -267,7 +266,7 @@ export default function Landing() {
             <div className="step reveal" style={{ transitionDelay: "160ms" }}>
               <div className="step__n">03</div>
               <div className="step__t">알림</div>
-              <div className="step__d">즉시 알림 + 리포트 제공</div>
+              <div className="step__d">채널로 즉시 알림 + 리포트</div>
             </div>
             <div className="step reveal" style={{ transitionDelay: "240ms" }}>
               <div className="step__n">04</div>
@@ -305,85 +304,57 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ===== FOOTER (CTA는 아주 약하게) ===== */}
-      <section className="lp-section lp-cta" aria-label="Footer">
-        <div className="lp-container">
-          <footer className="lpFooter reveal">
-            <div className="lpFooter__top">
-              <div className="lpFooter__brand">
-                <div className="lpFooter__logoRow">
-                  <div className="lpFooter__logoBox" aria-hidden="true">🖥️</div>
-                  <div className="lpFooter__brandName">모니또링</div>
-                </div>
-              </div>
-
-              <div className="lpFooter__cols">
-                <div className="lpFooter__col">
-                  <div className="lpFooter__title">CONTACT INFORMATION</div>
-
-                  <div className="lpFooter__item">
-                    <span className="lpFooter__icon">✉️</span>
-                    <span>1234@tukorea.ac.kr</span>
-                  </div>
-
-                  <div className="lpFooter__item">
-                    <span className="lpFooter__icon">📞</span>
-                    <span>010-1234-5678</span>
-                  </div>
-                </div>
-
-                <div className="lpFooter__col">
-                  <div className="lpFooter__title">COMPANY</div>
-                  <button className="lpFooter__link" type="button" onClick={() => scrollToId("features")}>Features</button>
-                  <button className="lpFooter__link" type="button" onClick={() => scrollToId("problem")}>About Us</button>
-                  <button className="lpFooter__link" type="button" onClick={() => scrollToId("features")}>Contact</button>
-                  <button className="lpFooter__link" type="button" onClick={() => scrollToId("features")}>Pricing</button>
-                </div>
-
-                <div className="lpFooter__col">
-                  <div className="lpFooter__title">HELP</div>
-                  <button className="lpFooter__link" type="button">FAQ</button>
-                  <button className="lpFooter__link" type="button">Help Center</button>
-                  <button className="lpFooter__link" type="button">Support</button>
-                </div>
-
-                <div className="lpFooter__col">
-                  <div className="lpFooter__title">FOLLOW US</div>
-                  <div className="lpFooter__social">
-                    <a className="lpFooter__socialBtn" href="#" aria-label="Facebook" onClick={(e) => e.preventDefault()}>f</a>
-                    <a className="lpFooter__socialBtn" href="#" aria-label="Instagram" onClick={(e) => e.preventDefault()}>⌁</a>
-                    <a className="lpFooter__socialBtn" href="#" aria-label="YouTube" onClick={(e) => e.preventDefault()}>▶</a>
-                  </div>
-                </div>
+      {/* ===== FOOTER (dark, inspien vibe) ===== */}
+      <footer className="lp-footer" aria-label="Footer">
+        <div className="lp-container footerInner">
+          <div className="footerTop reveal">
+            <div className="footerCTA">
+              <div className="footerCTA__t">서버 운영을 더 단순하게</div>
+              <div className="footerCTA__s">
+               대시보드 · 로그 · 알림을 하나의 플랫폼에서 관리하세요.
               </div>
             </div>
 
-            <div className="lpFooter__divider" />
-
-            <div className="lpFooter__bottom">
-              <div className="lpFooter__legal">
-                <button className="lpFooter__legalLink" type="button">이용약관</button>
-                <span className="lpFooter__dot">|</span>
-                <button className="lpFooter__legalLink" type="button">개인정보처리방침</button>
-                <span className="lpFooter__dot">|</span>
-                <button className="lpFooter__legalLink" type="button">회원가입</button>
-              </div>
-
-              <div className="lpFooter__copy">
-                © {new Date().getFullYear()} Monittoring. All rights reserved.
-              </div>
-            </div>
-
-            {/* ✅ 존재감 낮은 미니 CTA */}
-            <div className="miniCta">
-              <span className="miniCta__text">Ready to start?</span>
-              <button className="miniCta__btn" onClick={() => navigate("/login")}>
+            <div className="footerCTA__actions">
+              <button className="btnFooter" onClick={() => navigate("/login")}>
                 시작하기
               </button>
+              <button className="btnFooterGhost" onClick={() => scrollToId("features")}>
+                서비스 소개
+              </button>
             </div>
-          </footer>
+          </div>
+
+
+          <div className="footerInfo reveal" style={{ transitionDelay: "140ms" }}>
+            
+            <div className="footerBrand">MONITTORING</div>
+            <div className="footerMeta">
+              <div>주소: 경기도 시흥시 ○○로 00 (가상주소)</div>
+              <div>대표번호: 032-0000-0000 · 문의: support@monittoring.com</div>
+              <div>사업자등록번호: 000-00-00000</div>
+            </div>
+
+            <div className="footerLinks">
+              <a className="flinkSmall" href="#" onClick={(e) => e.preventDefault()}>
+                이용약관
+              </a>
+              <span className="dot" aria-hidden="true">·</span>
+              <a className="flinkSmall" href="#" onClick={(e) => e.preventDefault()}>
+                개인정보처리방침
+              </a>
+              <span className="dot" aria-hidden="true">·</span>
+              <a className="flinkSmall" href="#" onClick={(e) => e.preventDefault()}>
+                운영정책
+              </a>
+            </div>
+          </div>
+
+          <div className="footerBottom">
+            © {new Date().getFullYear()} Monittoring. All rights reserved.
+          </div>
         </div>
-      </section>
+      </footer>
     </div>
   );
 }
