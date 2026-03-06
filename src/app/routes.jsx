@@ -1,4 +1,3 @@
-//어떤 url에서 어떤 페이지를 보여줄지 정의하는 파일
 import { createBrowserRouter } from "react-router-dom";
 
 import PublicLayout from "../layouts/PublicLayout.jsx";
@@ -9,9 +8,6 @@ import Login from "../pages/Auth/Login.jsx";
 import Signup from "../pages/Auth/Signup.jsx";
 
 import Dashboard from "../pages/Dashboard/Dashboard.jsx";
-import ServerDetail from "../pages/Servers/ServerDetail.jsx";
-import Servers from "../pages/Servers/Servers.jsx";
-
 import Alerts from "../pages/Alerts/Alerts.jsx";
 import Logs from "../pages/Logs/Logs.jsx";
 import AgentInstall from "../pages/AgentInstall/AgentInstall.jsx";
@@ -32,10 +28,8 @@ export const router = createBrowserRouter([
     children: [
       { path: "/dashboard", element: <Dashboard /> },
       { path: "/agent-install", element: <AgentInstall /> },
-      { path: "/servers", element: <Servers /> },
-      { path: "/servers/:serverId", element: <ServerDetail /> },
-      { path: "/alerts", element: <Alerts /> },
       { path: "/logs", element: <Logs /> },
+      { path: "/alerts", element: <Alerts /> },
     ],
   },
   { path: "*", element: <NotFound /> },
