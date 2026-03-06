@@ -2,6 +2,10 @@ import { useLocation } from "react-router-dom";
 
 const TITLE_MAP = {
   "/dashboard": { title: "대시보드", desc: "전체 서버 현황을 한눈에 확인합니다." },
+  "/agent-install": {
+    title: "에이전트 설치",
+    desc: "설치 정보를 직접 입력하고 curl 명령어를 생성합니다.",
+  },
   "/servers": { title: "서버 상태", desc: "서버 목록/상태를 확인합니다." },
   "/logs": { title: "로그 분석", desc: "로그 필터/검색/스트림 확인" },
   "/alerts": { title: "알림 설정", desc: "임계값/채널/스케줄을 설정합니다." },
@@ -12,7 +16,9 @@ export default function TopBar({ onOpenNav }) {
 
   const meta =
     TITLE_MAP[pathname] ||
-    (pathname.startsWith("/servers/") ? { title: "서버 상세", desc: "서버 지표/로그를 확인합니다." } : { title: "Monittoring", desc: "AI Monitoring System" });
+    (pathname.startsWith("/servers/")
+      ? { title: "서버 상세", desc: "서버 지표/로그를 확인합니다." }
+      : { title: "Monittoring", desc: "AI Monitoring System" });
 
   return (
     <header className="topBar">

@@ -23,10 +23,10 @@ export default function SideNav({ open, onClose }) {
         </div>
 
         <nav className="navGroup">
+          <NavItem to="/agent-install" icon="🧩" label="에이전트 설치" />
           <NavItem to="/dashboard" icon="📊" label="대시보드" />
-          <NavItem to="/servers/a" icon="🖥️" label="서버 상세" />
-
-          <NavItem to="/logs" icon="📄" label="로그 분석"  />
+          <NavItem to="/servers" icon="🖥️" label="서버 상태" />
+          <NavItem to="/logs" icon="📄" label="로그 분석" />
           <NavItem to="/alerts" icon="🔔" label="알림 설정" />
         </nav>
 
