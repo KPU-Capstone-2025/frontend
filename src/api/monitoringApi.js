@@ -1,14 +1,14 @@
-// src/api/monitoringApi.js
-
 const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/monitoring";
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
 
 async function request(path, { method = "GET", query } = {}) {
   const url = new URL(BASE_URL + path);
 
   if (query && typeof query === "object") {
-    Object.entries(query).forEach(([k, v]) => {
-      if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+    Object.entries(query).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.set(key, String(value));
+      }
     });
   }
 
@@ -23,17 +23,17 @@ async function request(path, { method = "GET", query } = {}) {
 }
 
 export function getCompanies() {
-  return request("/companies");
+  return request("/auth/monitoring/companies");
 }
 
 export function getDashboardSummary(companyId) {
-  return request("/dashboard/summary", { query: { companyId } });
+  return request("/monitoring/dashboard/summary", {
+    query: { companyId },
+  });
 }
 
-/**
- * ✅ 로그 조회
- * 백엔드: GET /api/monitoring/logs?companyId=...&limit=...
- */
-export function getLogs(companyId, { limit = 200 } = {}) {
-  return request("/logs", { query: { companyId, limit } });
+export function getLogs(companyId, { limit = 200, level, keyword } = {}) {
+  return request("/monitoring/logs", {
+    query: { companyId, limit, level, keyword },
+  });
 }

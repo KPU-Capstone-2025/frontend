@@ -103,6 +103,24 @@ function RangeTabs({ value, onChange }) {
   );
 }
 
+function RefreshButton({ onClick, loading }) {
+  return (
+    <button
+      type="button"
+      className={`tableRefreshBtn ${loading ? "is-loading" : ""}`}
+      onClick={onClick}
+      disabled={loading}
+      title="컨테이너 목록 새로고침"
+      aria-label="컨테이너 목록 새로고침"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+        <path d="M20 4v6h-6" />
+      </svg>
+    </button>
+  );
+}
+
 export default function Dashboard() {
   const session = getStoredSession();
 
@@ -110,6 +128,7 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(true);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
+  const [refreshingContainers, setRefreshingContainers] = useState(false);
   const [error, setError] = useState("");
 
   const [hostData, setHostData] = useState(null);
@@ -123,6 +142,26 @@ export default function Dashboard() {
   const selectedContainer = useMemo(() => {
     return containers.find((item) => item.id === selectedContainerId) || null;
   }, [containers, selectedContainerId]);
+
+  async function loadContainersOnly() {
+    if (!companyId) return;
+
+    try {
+      setRefreshingContainers(true);
+      const containersRes = await getContainers(companyId);
+      const nextContainers = Array.isArray(containersRes) ? containersRes : [];
+      setContainers(nextContainers);
+
+      setSelectedContainerId((prev) => {
+        const hasPrev = nextContainers.some((item) => item.id === prev);
+        return hasPrev ? prev : nextContainers[0]?.id || "";
+      });
+    } catch (e) {
+      setError(e?.message || "컨테이너 목록을 새로고침하지 못했습니다.");
+    } finally {
+      setRefreshingContainers(false);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -141,12 +180,11 @@ export default function Dashboard() {
 
         if (!alive) return;
 
-        setHostData(hostRes);
-        setContainers(Array.isArray(containersRes) ? containersRes : []);
+        const nextContainers = Array.isArray(containersRes) ? containersRes : [];
 
-        const firstId =
-          (Array.isArray(containersRes) && containersRes[0]?.id) || "";
-        setSelectedContainerId(firstId);
+        setHostData(hostRes);
+        setContainers(nextContainers);
+        setSelectedContainerId(nextContainers[0]?.id || "");
       } catch (e) {
         if (!alive) return;
         setError(e?.message || "대시보드 데이터를 불러오지 못했습니다.");
@@ -156,6 +194,7 @@ export default function Dashboard() {
     }
 
     loadPage();
+
     return () => {
       alive = false;
     };
@@ -165,14 +204,17 @@ export default function Dashboard() {
     let alive = true;
 
     async function loadContainerMetrics() {
-      if (!companyId || !selectedContainerId) return;
+      if (!companyId || !selectedContainerId) {
+        setContainerMetrics(null);
+        return;
+      }
 
       try {
         setLoadingMetrics(true);
         const res = await getContainerMetrics(companyId, selectedContainerId, range);
         if (!alive) return;
         setContainerMetrics(res);
-      } catch (e) {
+      } catch {
         if (!alive) return;
         setContainerMetrics(null);
       } finally {
@@ -181,6 +223,7 @@ export default function Dashboard() {
     }
 
     loadContainerMetrics();
+
     return () => {
       alive = false;
     };
@@ -201,7 +244,7 @@ export default function Dashboard() {
         </div>
 
         <div className="unifiedSkeleton" style={{ height: 180 }} />
-        <div className="unifiedSkeleton" style={{ height: 340 }} />
+        <div className="unifiedSkeleton" style={{ height: 260 }} />
         <div className="unifiedSkeleton" style={{ height: 420 }} />
       </div>
     );
@@ -231,28 +274,11 @@ export default function Dashboard() {
             <div className="sectionEyebrow">HOST SERVER</div>
             <h3 className="sectionTitle">호스트 서버 전체 리소스</h3>
             <p className="sectionDesc">
-              최상단에는 전체 서버 상태를 먼저 보여주고, 아래에서 컨테이너별 상세를 확인하는 구조입니다.
+              최상단에는 전체 서버 상태를 먼저 보여주고, 아래에서 컨테이너별 상세를 확인합니다.
             </p>
           </div>
 
           <div className={`statusPill ${hostStatus.className}`}>{hostStatus.label}</div>
-        </div>
-
-        <div className="hostInfoRow">
-          <div className="hostInfoMain">
-            <div className="hostInfoMain__title">{host?.name || "main-host-01"}</div>
-            <div className="hostInfoMain__meta">
-              <span>{host?.ip || "-"}</span>
-              <span>·</span>
-              <span>{host?.os || "-"}</span>
-              <span>·</span>
-              <span>업타임 {host?.uptime || "-"}</span>
-            </div>
-          </div>
-
-          <div className="hostInfoSub">
-            마지막 수집 시간 {host?.lastUpdate ? new Date(host.lastUpdate).toLocaleString() : "-"}
-          </div>
         </div>
 
         <div className="unifiedMetricGrid">
@@ -316,65 +342,35 @@ export default function Dashboard() {
             <div className="sectionEyebrow">CONTAINERS</div>
             <h3 className="sectionTitle">컨테이너 목록</h3>
             <p className="sectionDesc">
-              로그인한 회사의 컨테이너가 자동 조회되고, 행을 클릭하면 하단 상세가 바뀝니다.
+              로그인한 회사의 컨테이너가 자동 조회되고, 이름을 클릭하면 하단 상세가 바뀝니다.
             </p>
           </div>
 
-          <div className="tableSummary">
-            총 <strong>{containers.length}</strong>개
+          <div className="tableSummaryWrap">
+            <div className="tableSummary">
+              총 <strong>{containers.length}</strong>개
+            </div>
+            <RefreshButton onClick={loadContainersOnly} loading={refreshingContainers} />
           </div>
         </div>
 
-        <div className="containerTableWrap">
-          <table className="containerTable">
-            <thead>
-              <tr>
-                <th>컨테이너</th>
-                <th>상태</th>
-                <th>CPU</th>
-                <th>메모리</th>
-                <th>네트워크</th>
-                <th>재시작</th>
-                <th>이미지</th>
-              </tr>
-            </thead>
-            <tbody>
-              {containers.map((container) => {
-                const meta = statusMeta(container.status);
+        <div className="containerNameList">
+          {containers.map((container) => (
+            <button
+              key={container.id}
+              type="button"
+              className={`containerNameItem ${
+                selectedContainerId === container.id ? "is-selected" : ""
+              }`}
+              onClick={() => setSelectedContainerId(container.id)}
+            >
+              {container.name}
+            </button>
+          ))}
 
-                return (
-                  <tr
-                    key={container.id}
-                    className={selectedContainerId === container.id ? "is-selected" : ""}
-                    onClick={() => setSelectedContainerId(container.id)}
-                  >
-                    <td>
-                      <div className="containerNameCell">
-                        <div className="containerNameCell__title">{container.name}</div>
-                        <div className="containerNameCell__sub">{container.id}</div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`statusPill ${meta.className}`}>{meta.label}</span>
-                    </td>
-                    <td>{container.cpuUsage}%</td>
-                    <td>{container.memoryUsage}%</td>
-                    <td>{container.networkTraffic} MB/s</td>
-                    <td>{container.restarts}</td>
-                    <td className="cellImage">{container.image}</td>
-                  </tr>
-                );
-              })}
-
-              {containers.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="emptyRow">
-                    조회된 컨테이너가 없습니다.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+          {containers.length === 0 ? (
+            <div className="emptyNameList">조회된 컨테이너가 없습니다.</div>
+          ) : null}
         </div>
       </section>
 
@@ -386,7 +382,7 @@ export default function Dashboard() {
               {selectedContainer?.name || "컨테이너"} 상세 리소스
             </h3>
             <p className="sectionDesc">
-              선택한 컨테이너 기준 CPU, 메모리, 네트워크 IN/OUT, 총 트래픽을 확인합니다.
+              선택한 컨테이너 기준 CPU, 메모리, 디스크, 네트워크 트래픽 추이를 확인합니다.
             </p>
           </div>
 
@@ -400,29 +396,36 @@ export default function Dashboard() {
           <div className="detailSummaryCard">
             <div className="detailSummaryCard__label">평균 CPU</div>
             <div className="detailSummaryCard__value">
-              {containerMetrics?.summary?.cpuAvg?.toFixed?.(1) ?? avgOf(containerMetrics?.metrics?.cpu).toFixed(1)}%
+              {containerMetrics?.summary?.cpuAvg?.toFixed?.(1) ??
+                avgOf(containerMetrics?.metrics?.cpu).toFixed(1)}
+              %
             </div>
           </div>
+
           <div className="detailSummaryCard">
             <div className="detailSummaryCard__label">평균 메모리</div>
             <div className="detailSummaryCard__value">
               {containerMetrics?.summary?.memoryAvg?.toFixed?.(1) ??
                 avgOf(containerMetrics?.metrics?.memory).toFixed(1)}
-              <span className="detailSummaryCard__unit">GB</span>
+              <span className="detailSummaryCard__unit">%</span>
             </div>
           </div>
+
           <div className="detailSummaryCard">
-            <div className="detailSummaryCard__label">평균 네트워크</div>
+            <div className="detailSummaryCard__label">평균 디스크</div>
+            <div className="detailSummaryCard__value">
+              {containerMetrics?.summary?.diskAvg?.toFixed?.(1) ??
+                avgOf(containerMetrics?.metrics?.disk).toFixed(1)}
+              <span className="detailSummaryCard__unit">%</span>
+            </div>
+          </div>
+
+          <div className="detailSummaryCard">
+            <div className="detailSummaryCard__label">평균 네트워크 트래픽</div>
             <div className="detailSummaryCard__value">
               {containerMetrics?.summary?.networkAvg?.toFixed?.(1) ??
-                avgOf(containerMetrics?.metrics?.networkTotal).toFixed(1)}
+                avgOf(containerMetrics?.metrics?.network).toFixed(1)}
               <span className="detailSummaryCard__unit">MB/s</span>
-            </div>
-          </div>
-          <div className="detailSummaryCard">
-            <div className="detailSummaryCard__label">대상 이미지</div>
-            <div className="detailSummaryCard__value detailSummaryCard__value--small">
-              {selectedContainer?.image || "-"}
             </div>
           </div>
         </div>
@@ -439,46 +442,26 @@ export default function Dashboard() {
               footer="선택 컨테이너 CPU 추이"
             />
             <MiniChartCard
-              title="메모리 사용량 (GB)"
+              title="메모리 사용률 (%)"
               value={lastOf(containerMetrics?.metrics?.memory).toFixed(1)}
-              unit="GB"
+              unit="%"
               data={containerMetrics?.metrics?.memory || []}
               footer="선택 컨테이너 메모리 추이"
             />
             <MiniChartCard
-              title="네트워크 IN (MB/s)"
-              value={lastOf(containerMetrics?.metrics?.networkIn).toFixed(1)}
-              unit="MB/s"
-              data={containerMetrics?.metrics?.networkIn || []}
-              footer="유입 트래픽"
+              title="디스크 사용률 (%)"
+              value={lastOf(containerMetrics?.metrics?.disk).toFixed(1)}
+              unit="%"
+              data={containerMetrics?.metrics?.disk || []}
+              footer="선택 컨테이너 디스크 추이"
             />
             <MiniChartCard
-              title="네트워크 OUT (MB/s)"
-              value={lastOf(containerMetrics?.metrics?.networkOut).toFixed(1)}
+              title="네트워크 트래픽 (MB/s)"
+              value={lastOf(containerMetrics?.metrics?.network).toFixed(1)}
               unit="MB/s"
-              data={containerMetrics?.metrics?.networkOut || []}
-              footer="유출 트래픽"
+              data={containerMetrics?.metrics?.network || []}
+              footer="선택 컨테이너 전체 네트워크 추이"
             />
-            <div className="miniChartCard miniChartCard--wide">
-              <div className="miniChartCard__head">
-                <div className="miniChartCard__title">네트워크 총 트래픽 (MB/s)</div>
-                <div className="miniChartCard__value">
-                  {lastOf(containerMetrics?.metrics?.networkTotal).toFixed(1)}
-                  <span className="miniChartCard__unit">MB/s</span>
-                </div>
-              </div>
-
-              <div className="miniChartCard__body">
-                <svg viewBox="0 0 320 86" preserveAspectRatio="none" className="miniChartSvg">
-                  <path
-                    d={buildSparkPath(containerMetrics?.metrics?.networkTotal || [])}
-                    className="miniChartSvg__path"
-                  />
-                </svg>
-              </div>
-
-              <div className="miniChartCard__footer">선택 컨테이너의 전체 네트워크 트래픽</div>
-            </div>
           </div>
         )}
       </section>

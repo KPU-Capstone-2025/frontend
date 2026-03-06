@@ -11,6 +11,7 @@ import Dashboard from "../pages/Dashboard/Dashboard.jsx";
 import Alerts from "../pages/Alerts/Alerts.jsx";
 import Logs from "../pages/Logs/Logs.jsx";
 import AgentInstall from "../pages/AgentInstall/AgentInstall.jsx";
+import Chatbot from "../pages/Chatbot/Chatbot.jsx";
 
 import NotFound from "../pages/NotFound.jsx";
 
@@ -26,9 +27,10 @@ export const router = createBrowserRouter([
   {
     element: <AppLayout />,
     children: [
-      { path: "/dashboard", element: <Dashboard /> },
       { path: "/agent-install", element: <AgentInstall /> },
+      { path: "/dashboard", element: <Dashboard /> },
       { path: "/logs", element: <Logs /> },
+      { path: "/chatbot", element: <Chatbot /> },
       { path: "/alerts", element: <Alerts /> },
     ],
   },

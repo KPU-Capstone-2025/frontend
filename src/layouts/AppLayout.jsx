@@ -5,17 +5,21 @@ import { getStoredSession } from "../services/authStorage.js";
 import "./layout.css";
 
 const TITLE_MAP = {
-  "/dashboard": {
-    title: "통합 모니터링",
-    desc: "호스트 서버와 컨테이너 리소스를 한 화면에서 확인합니다.",
-  },
   "/agent-install": {
     title: "에이전트 설치",
     desc: "모니터링 에이전트 설치 방법을 안내합니다.",
   },
+  "/dashboard": {
+    title: "대시보드",
+    desc: "호스트 서버와 컨테이너 리소스를 한 화면에서 확인합니다.",
+  },
   "/logs": {
     title: "로그 분석",
     desc: "에러/레벨/검색으로 원인을 빠르게 찾습니다.",
+  },
+  "/chatbot": {
+    title: "챗봇",
+    desc: "운영 상태와 로그 관련 질문을 빠르게 확인합니다.",
   },
   "/alerts": {
     title: "알림 설정",
