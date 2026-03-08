@@ -2,6 +2,8 @@ const DEFAULT_BASE_URL = "http://localhost:8080/api";
 export const API_BASE_URL =
   import.meta?.env?.VITE_API_BASE_URL || DEFAULT_BASE_URL;
 
+const HISTORY_LIMIT = 12;
+
 async function fetchJson(url, { method = "GET", headers, body, signal } = {}) {
   const res = await fetch(url, {
     method,
@@ -77,7 +79,7 @@ function normalizeUsage(value, { preferred = "percent", allowBytes = false } = {
 function normalizeNetwork(value) {
   const raw = clampNumber(value, 0);
 
-  if (raw > 1024 * 1024) {
+  if (raw >= 1024 * 1024) {
     return {
       raw,
       value: round(bytesToMb(raw), 2),
@@ -85,10 +87,18 @@ function normalizeNetwork(value) {
     };
   }
 
+  if (raw >= 1024) {
+    return {
+      raw,
+      value: round(raw / 1024, 2),
+      unit: "KB/s",
+    };
+  }
+
   return {
     raw,
     value: round(raw, 2),
-    unit: "MB/s",
+    unit: "B/s",
   };
 }
 
@@ -104,12 +114,43 @@ function mapBackendStatus(status) {
   return "bad";
 }
 
-function makeFlatSeries(value, length = 12) {
+function appendSeriesPoint(series = [], value, timestamp = Date.now(), limit = HISTORY_LIMIT) {
+  const next = Array.isArray(series) ? [...series] : [];
+  next.push({
+    t: timestamp,
+    v: round(value, 2),
+  });
+
+  if (next.length > limit) {
+    return next.slice(next.length - limit);
+  }
+
+  return next;
+}
+
+function makeInitialSeries(value, length = HISTORY_LIMIT) {
   const safe = round(value, 2);
   return Array.from({ length }, (_, idx) => ({
     t: idx,
     v: safe,
   }));
+}
+
+function avgSeries(series = []) {
+  if (!series.length) return 0;
+  return round(
+    series.reduce((sum, item) => sum + clampNumber(item.v, 0), 0) / series.length,
+    2
+  );
+}
+
+function buildSummary(metrics) {
+  return {
+    cpuAvg: avgSeries(metrics.cpu),
+    memoryAvg: avgSeries(metrics.memory),
+    diskAvg: avgSeries(metrics.disk),
+    networkAvg: avgSeries(metrics.network),
+  };
 }
 
 function normalizeHostResponse(payload, companyId) {
@@ -144,10 +185,10 @@ function normalizeHostResponse(payload, companyId) {
       lastUpdate: new Date().toISOString(),
     },
     hostMetrics: {
-      cpu: makeFlatSeries(cpu.value),
-      memory: makeFlatSeries(memory.value),
-      disk: makeFlatSeries(disk.value),
-      network: makeFlatSeries(network.value),
+      cpu: makeInitialSeries(cpu.value),
+      memory: makeInitialSeries(memory.value),
+      disk: makeInitialSeries(disk.value),
+      network: makeInitialSeries(network.value),
     },
   };
 }
@@ -161,23 +202,6 @@ function normalizeContainersResponse(payload) {
     status: mapBackendStatus(item.status),
     rawStatus: item.status || "UNKNOWN",
   }));
-}
-
-function buildSummary(metrics) {
-  return {
-    cpuAvg: avgSeries(metrics.cpu),
-    memoryAvg: avgSeries(metrics.memory),
-    diskAvg: avgSeries(metrics.disk),
-    networkAvg: avgSeries(metrics.network),
-  };
-}
-
-function avgSeries(series = []) {
-  if (!series.length) return 0;
-  return round(
-    series.reduce((sum, item) => sum + clampNumber(item.v, 0), 0) / series.length,
-    2
-  );
 }
 
 function normalizeContainerMetricsResponse(payload) {
@@ -198,10 +222,16 @@ function normalizeContainerMetricsResponse(payload) {
     status: mapBackendStatus(metrics.status),
     rawStatus: metrics.status || "UNKNOWN",
     metrics: {
-      cpu: makeFlatSeries(cpu.value),
-      memory: makeFlatSeries(memory.value),
-      disk: makeFlatSeries(disk.value),
-      network: makeFlatSeries(network.value),
+      cpu: makeInitialSeries(cpu.value),
+      memory: makeInitialSeries(memory.value),
+      disk: makeInitialSeries(disk.value),
+      network: makeInitialSeries(network.value),
+    },
+    current: {
+      cpu: cpu.value,
+      memory: memory.value,
+      disk: disk.value,
+      network: network.value,
     },
     units: {
       cpu: cpu.unit,
@@ -209,11 +239,81 @@ function normalizeContainerMetricsResponse(payload) {
       disk: disk.unit,
       network: network.unit,
     },
+    lastUpdate: new Date().toISOString(),
   };
 
   return {
     ...normalized,
     summary: buildSummary(normalized.metrics),
+  };
+}
+
+export function mergeHostSnapshot(prevHostData, nextHostData) {
+  if (!prevHostData) return nextHostData;
+
+  const timestamp = Date.now();
+
+  return {
+    ...nextHostData,
+    hostMetrics: {
+      cpu: appendSeriesPoint(
+        prevHostData?.hostMetrics?.cpu,
+        nextHostData?.host?.cpuUsage,
+        timestamp
+      ),
+      memory: appendSeriesPoint(
+        prevHostData?.hostMetrics?.memory,
+        nextHostData?.host?.memoryUsage,
+        timestamp
+      ),
+      disk: appendSeriesPoint(
+        prevHostData?.hostMetrics?.disk,
+        nextHostData?.host?.diskUsage,
+        timestamp
+      ),
+      network: appendSeriesPoint(
+        prevHostData?.hostMetrics?.network,
+        nextHostData?.host?.networkTraffic,
+        timestamp
+      ),
+    },
+  };
+}
+
+export function mergeContainerMetricsSnapshot(prevMetrics, nextMetrics) {
+  if (!prevMetrics) return nextMetrics;
+
+  const timestamp = Date.now();
+
+  const merged = {
+    ...nextMetrics,
+    metrics: {
+      cpu: appendSeriesPoint(
+        prevMetrics?.metrics?.cpu,
+        nextMetrics?.current?.cpu,
+        timestamp
+      ),
+      memory: appendSeriesPoint(
+        prevMetrics?.metrics?.memory,
+        nextMetrics?.current?.memory,
+        timestamp
+      ),
+      disk: appendSeriesPoint(
+        prevMetrics?.metrics?.disk,
+        nextMetrics?.current?.disk,
+        timestamp
+      ),
+      network: appendSeriesPoint(
+        prevMetrics?.metrics?.network,
+        nextMetrics?.current?.network,
+        timestamp
+      ),
+    },
+  };
+
+  return {
+    ...merged,
+    summary: buildSummary(merged.metrics),
   };
 }
 
