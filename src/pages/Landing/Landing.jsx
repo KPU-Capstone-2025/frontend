@@ -331,7 +331,7 @@ export default function Landing() {
             <div className="footerBrand">MONITTORING</div>
             <div className="footerMeta">
               <div>주소: 경기도 시흥시 ○○로 00 (가상주소)</div>
-              <div>대표번호: 032-0000-0000 · 문의: support@monittoring.com</div>
+              <div>대표번호: 031-0000-0000 · 문의: support@monittoring.com</div>
               <div>사업자등록번호: 000-00-00000</div>
             </div>
 

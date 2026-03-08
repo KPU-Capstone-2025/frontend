@@ -16,3 +16,9 @@ export function getStoredSession() {
 export function clearStoredSession() {
   window.sessionStorage.removeItem(SESSION_KEY);
 }
+
+export function buildCompanyDisplayName(session) {
+  if (session?.companyName) return session.companyName;
+  if (session?.companyId) return `기업 #${session.companyId}`;
+  return "회사 정보 없음";
+}

@@ -5,30 +5,40 @@ import "./login.css";
 import ImacMock from "../../components/common/ImacMock.jsx";
 import dashboard from "../../assets/images/dashboard.png";
 import { setStoredSession } from "../../services/authStorage.js";
+import { loginCompany } from "../../services/monitoringApi.js";
 
 export default function Login() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // TODO:
-    // 실제 로그인 API 연결 후,
-    // 응답값의 companyId / companyName / user 정보를 sessionStorage에 저장하면 됨
-    const mockSession = {
-      userId: 1,
-      name: "관리자",
-      email,
-      role: "관리자",
-      companyId: "smallTest",
-      companyName: "smallTest",
-    };
+    try {
+      setLoading(true);
+      setError("");
 
-    setStoredSession(mockSession);
-    navigate("/dashboard", { replace: true });
+      const session = await loginCompany({ email, password });
+
+      setStoredSession({
+        userId: session.companyId,
+        name: "기업 관리자",
+        email: session.email,
+        role: "기업 관리자",
+        companyId: session.companyId,
+        companyName: session.companyName,
+      });
+
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError(err?.message || "로그인에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,6 +71,19 @@ export default function Login() {
               required
             />
 
+            {error ? (
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "#d92d20",
+                  fontWeight: 700,
+                  marginTop: 4,
+                }}
+              >
+                {error}
+              </div>
+            ) : null}
+
             <button
               type="button"
               className="authTextLink"
@@ -69,14 +92,15 @@ export default function Login() {
               비밀번호 찾기
             </button>
 
-            <button type="submit" className="authBtn primary">
-              로그인
+            <button type="submit" className="authBtn primary" disabled={loading}>
+              {loading ? "로그인 중..." : "로그인"}
             </button>
 
             <button
               type="button"
               className="authBtn secondary"
               onClick={() => navigate("/signup")}
+              disabled={loading}
             >
               회원가입
             </button>
@@ -85,8 +109,9 @@ export default function Login() {
               type="button"
               className="authBack"
               onClick={() => navigate("/")}
+              disabled={loading}
             >
-              ← 처음으로
+              ← 메인으로
             </button>
           </form>
         </div>

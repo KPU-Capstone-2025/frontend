@@ -1,10 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./agentInstall.css";
+import { getStoredSession, buildCompanyDisplayName } from "../../services/authStorage.js";
+import { getAgentDestination } from "../../services/monitoringApi.js";
 
-function CopyButton({ text, label = "복사", className = "" }) {
+function CopyButton({ text, label = "복사", className = "", disabled = false }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
+    if (!text || disabled) return;
+
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -20,6 +24,7 @@ function CopyButton({ text, label = "복사", className = "" }) {
       type="button"
       className={`agentBtn ${copied ? "agentBtn--done" : ""} ${className}`}
       onClick={handleCopy}
+      disabled={disabled}
     >
       {copied ? "복사 완료" : label}
     </button>
@@ -45,7 +50,7 @@ function SectionCard({ icon, title, sub, right, children }) {
   );
 }
 
-function CodeBlock({ code, copyLabel = "전체 복사" }) {
+function CodeBlock({ code, copyLabel = "전체 복사", disabled = false }) {
   return (
     <div className="codeBlockWrap">
       <pre className="codeBlock">
@@ -53,16 +58,63 @@ function CodeBlock({ code, copyLabel = "전체 복사" }) {
       </pre>
 
       <div className="codeBlock__actions">
-        <CopyButton text={code} label={copyLabel} className="agentBtn--primary" />
+        <CopyButton
+          text={code}
+          label={copyLabel}
+          className="agentBtn--primary"
+          disabled={disabled}
+        />
       </div>
     </div>
   );
 }
 
 export default function AgentInstall() {
+  const session = getStoredSession();
+  const companyId = session?.companyId;
+  const companyName = buildCompanyDisplayName(session);
+
+  const [agentInfo, setAgentInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadAgentInfo() {
+      if (!companyId) {
+        setError("로그인된 회사 정보가 없습니다.");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+        const data = await getAgentDestination(companyId);
+        if (!alive) return;
+        setAgentInfo(data);
+      } catch (err) {
+        if (!alive) return;
+        setError(err?.message || "에이전트 설치 정보를 불러오지 못했습니다.");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
+
+    loadAgentInfo();
+
+    return () => {
+      alive = false;
+    };
+  }, [companyId]);
+
   const dockerPullCommand = useMemo(() => {
     return `sudo docker pull kimhongseok/metric-agent:latest`;
   }, []);
+
+  const monitoringId = agentInfo?.apiKey || "불러오는 중";
+  const collectorUrl = agentInfo?.collectorUrl || "불러오는 중";
 
   const dockerRunCommand = useMemo(() => {
     return [
@@ -74,21 +126,21 @@ export default function AgentInstall() {
       "  -v /var/log:/var/log \\",
       "  -v /proc:/host/proc:ro \\",
       "  -v /sys:/host/sys:ro \\",
-      '  -e MONITORING_ID="귀사의_고유_코드" \\',
-      '  -e COLLECTOR_URL="수집_서버_주소:4318" \\',
+      `  -e MONITORING_ID="${monitoringId}" \\`,
+      `  -e COLLECTOR_URL="${collectorUrl}" \\`,
       "  kimhongseok/metric-agent:latest",
     ].join("\n");
-  }, []);
+  }, [collectorUrl, monitoringId]);
 
   const curlCommand = useMemo(() => {
     return [
       "curl -fLO http://agent.monittoring.co.kr/metric-agent",
       "chmod +x metric-agent",
-      'export MONITORING_ID="귀사의_고유_코드"',
-      'export COLLECTOR_URL="수집_서버_주소:4318"',
+      `export MONITORING_ID="${monitoringId}"`,
+      `export COLLECTOR_URL="${collectorUrl}"`,
       "sudo -E nohup ./metric-agent > metric.log 2>&1 &",
     ].join("\n");
-  }, []);
+  }, [collectorUrl, monitoringId]);
 
   return (
     <div className="agentPage">
@@ -98,7 +150,7 @@ export default function AgentInstall() {
             <div className="agentHero__eyebrow">Metric Agent · 설치 가이드</div>
             <h2 className="agentHero__title">에이전트 설치 방법을 확인하고 바로 실행하세요</h2>
             <p className="agentHero__desc">
-              서버 환경에 맞는 설치 방법을 선택한 뒤 명령어를 그대로 복사해 실행하면 됩니다.
+              로그인한 회사 기준으로 발급된 MONITORING_ID와 COLLECTOR_URL을 자동으로 불러옵니다.
             </p>
           </div>
 
@@ -106,16 +158,30 @@ export default function AgentInstall() {
             <div className="statusCard">
               <div className="statusCard__top">
                 <span className="statusCard__dot" />
-                설치 가이드 제공
+                {loading ? "설치 정보 불러오는 중" : "설치 정보 준비 완료"}
               </div>
               <div className="statusCard__text">
-                Docker 방식과 curl 방식 중 하나를 선택해
+                {companyName}
                 <br />
-                서버에서 그대로 실행하면 됩니다.
+                {error ? error : `MONITORING_ID와 COLLECTOR_URL이 자동 반영됩니다.`}
               </div>
             </div>
           </div>
         </div>
+
+        <SectionCard
+          icon="🪪"
+          title="현재 발급 정보"
+          sub="백엔드의 /api/agent/{companyId} 응답값을 그대로 사용합니다."
+        >
+          <div className="installInfo">
+            <div className="installInfo__title">회사 정보</div>
+            <div className="installInfo__text">회사: {companyName}</div>
+            <div className="installInfo__text">companyId: {companyId || "-"}</div>
+            <div className="installInfo__text">MONITORING_ID: {monitoringId}</div>
+            <div className="installInfo__text">COLLECTOR_URL: {collectorUrl}</div>
+          </div>
+        </SectionCard>
 
         <SectionCard
           icon="🐳"
@@ -136,13 +202,8 @@ export default function AgentInstall() {
               <div className="stepItem__num">1</div>
               <div className="stepItem__body">
                 <div className="stepItem__title">이미지 다운로드</div>
-                <div className="stepItem__desc">
-                  최신 Metric Agent 이미지를 서버에 내려받습니다.
-                </div>
-                <CodeBlock
-                  code={dockerPullCommand}
-                  copyLabel="이미지 다운로드 복사"
-                />
+                <div className="stepItem__desc">최신 Metric Agent 이미지를 서버에 내려받습니다.</div>
+                <CodeBlock code={dockerPullCommand} copyLabel="이미지 다운로드 복사" />
               </div>
             </div>
 
@@ -151,11 +212,12 @@ export default function AgentInstall() {
               <div className="stepItem__body">
                 <div className="stepItem__title">에이전트 실행</div>
                 <div className="stepItem__desc">
-                  MONITORING_ID와 COLLECTOR_URL 값을 넣어 컨테이너를 실행합니다.
+                  백엔드에서 내려준 MONITORING_ID와 COLLECTOR_URL이 자동으로 반영됩니다.
                 </div>
                 <CodeBlock
                   code={dockerRunCommand}
                   copyLabel="Docker 실행 명령 복사"
+                  disabled={loading || !!error}
                 />
               </div>
             </div>
@@ -181,44 +243,17 @@ export default function AgentInstall() {
               <div className="stepItem__body">
                 <div className="stepItem__title">에이전트 실행</div>
                 <div className="stepItem__desc">
-                  MONITORING_ID와 COLLECTOR_URL 값을 설정한 뒤 에이전트를 실행합니다.
+                  백엔드에서 내려준 MONITORING_ID와 COLLECTOR_URL을 그대로 사용합니다.
                 </div>
                 <CodeBlock
                   code={curlCommand}
                   copyLabel="curl 설치 명령 복사"
+                  disabled={loading || !!error}
                 />
               </div>
             </div>
           </div>
         </SectionCard>
-
-        <div className="agentCols">
-          <SectionCard
-            icon="📌"
-            title="설치 전 준비 사항"
-            sub="실행 전에 아래 조건을 확인해 주세요."
-          >
-            <ul className="checkList">
-              <li>운영체제는 Linux 환경 사용 (Ubuntu 20.04 이상 권장)</li>
-              <li>Collector 서버의 4318 포트로 아웃바운드 HTTP 통신 허용</li>
-              <li>MONITORING_ID와 COLLECTOR_URL 값을 미리 확인</li>
-              <li>Docker 방식 사용 시 서버에 Docker가 설치되어 있어야 함</li>
-            </ul>
-          </SectionCard>
-
-          <SectionCard
-            icon="✅"
-            title="설치 후 확인 포인트"
-            sub="설치가 정상적으로 되었는지 아래 항목을 확인해 주세요."
-          >
-            <ul className="checkList">
-              <li>에이전트 또는 컨테이너가 정상 실행 중인지 확인</li>
-              <li>로그 파일 또는 Docker 로그에 에러가 없는지 확인</li>
-              <li>대시보드에서 서버 데이터가 수집되는지 확인</li>
-              <li>서버 상태 페이지에서 CPU, RAM, 네트워크 정보 반영 여부 확인</li>
-            </ul>
-          </SectionCard>
-        </div>
       </div>
     </div>
   );

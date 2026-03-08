@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./login.css";
 import "./signup.css";
+import { registerCompany } from "../../services/monitoringApi.js";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ export default function Signup() {
   });
 
   const [submitError, setSubmitError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const setField = (key, value) => setForm((p) => ({ ...p, [key]: value }));
 
@@ -46,7 +48,7 @@ export default function Signup() {
   }, [form.phone2, form.phone3]);
 
   const pwMatch = useMemo(() => {
-    if (!form.pw2) return null; // 아직 입력 안함
+    if (!form.pw2) return null;
     return form.pw === form.pw2;
   }, [form.pw, form.pw2]);
 
@@ -85,10 +87,9 @@ export default function Signup() {
     return "";
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 제출 시 검증이 잘 보이게 touched 처리
     setTouched((p) => ({ ...p, phone: true, pw2: true }));
 
     const msg = validateBeforeSubmit();
@@ -97,8 +98,25 @@ export default function Signup() {
       return;
     }
 
-    alert("회원가입 완료(목업). 로그인 페이지로 이동합니다.");
-    navigate("/login");
+    try {
+      setSubmitting(true);
+      setSubmitError("");
+
+      await registerCompany({
+        name: form.company.trim(),
+        email: form.email.trim(),
+        password: form.pw,
+        ip: form.companyIp.trim(),
+        phone: `${form.phone1}-${form.phone2}-${form.phone3}`,
+      });
+
+      alert("회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.");
+      navigate("/login", { replace: true });
+    } catch (err) {
+      setSubmitError(err?.message || "회원가입에 실패했습니다.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -108,7 +126,6 @@ export default function Signup() {
           <h1 className="authTitle">회원가입</h1>
 
           <form className="signupForm" onSubmit={handleSubmit}>
-            {/* 이름 */}
             <Field label="이름" required>
               <input
                 value={form.name}
@@ -117,7 +134,6 @@ export default function Signup() {
               />
             </Field>
 
-            {/* 전화번호 */}
             <Field label="전화번호" required>
               <div className="phoneRow">
                 <select value={form.phone1} onChange={(e) => setField("phone1", e.target.value)}>
@@ -159,7 +175,6 @@ export default function Signup() {
               )}
             </Field>
 
-            {/* 이메일 */}
             <Field label="이메일 (ID)" required>
               <input
                 type="email"
@@ -169,7 +184,6 @@ export default function Signup() {
               />
             </Field>
 
-            {/* 비밀번호 */}
             <Field label="비밀번호" required>
               <input
                 type="password"
@@ -180,7 +194,6 @@ export default function Signup() {
               <p className="hint">영문/숫자/특수문자 포함 8자 이상 권장</p>
             </Field>
 
-            {/* 비밀번호 확인 */}
             <Field label="비밀번호 확인" required>
               <input
                 type="password"
@@ -196,7 +209,6 @@ export default function Signup() {
               )}
             </Field>
 
-            {/* 회사명 */}
             <Field label="회사명" required>
               <input
                 value={form.company}
@@ -205,7 +217,6 @@ export default function Signup() {
               />
             </Field>
 
-            {/* 회사 IP */}
             <Field label="회사 IP" required>
               <input
                 placeholder="예: 192.168.0.1"
@@ -215,37 +226,29 @@ export default function Signup() {
               />
             </Field>
 
-            {/* 생년월일 (양력/음력 제거) */}
             <Field label="생년월일">
               <div className="birthRow">
                 <input
-                  placeholder="년"
+                  placeholder="YYYY"
                   value={form.birthY}
                   onChange={(e) => setField("birthY", e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  inputMode="numeric"
                 />
-                <span className="unit">년</span>
                 <input
-                  placeholder="월"
+                  placeholder="MM"
                   value={form.birthM}
                   onChange={(e) => setField("birthM", e.target.value.replace(/\D/g, "").slice(0, 2))}
-                  inputMode="numeric"
                 />
-                <span className="unit">월</span>
                 <input
-                  placeholder="일"
+                  placeholder="DD"
                   value={form.birthD}
                   onChange={(e) => setField("birthD", e.target.value.replace(/\D/g, "").slice(0, 2))}
-                  inputMode="numeric"
                 />
-                <span className="unit">일</span>
               </div>
             </Field>
 
-            {/* 약관 */}
             <div className="agreeBox">
               <label className="checkRow checkRow--all">
-                <span>모두 동의합니다.</span>
+                <span>전체 동의</span>
                 <input
                   type="checkbox"
                   checked={agree.all}
@@ -264,15 +267,11 @@ export default function Signup() {
                   checked={agree.privacy}
                   onChange={(v) => onToggle("privacy", v)}
                 />
-
-                {/* 선택 수신 동의 (한 줄 통일) */}
                 <AgreeRow
                   label="[선택] 수신 동의"
                   checked={agree.marketing}
                   onChange={(v) => onToggle("marketing", v)}
                 />
-
-                {/* ✅ SMS/이메일: 위 라인과 동일한 줄맞춤 */}
                 <AgreeRow
                   label="SMS 수신 동의"
                   checked={agree.sms}
@@ -290,11 +289,16 @@ export default function Signup() {
 
             {submitError ? <div className="submitError">{submitError}</div> : null}
 
-            <button type="submit" className="authBtn primary" disabled={!requiredOk}>
-              회원가입
+            <button type="submit" className="authBtn primary" disabled={!requiredOk || submitting}>
+              {submitting ? "회원가입 중..." : "회원가입"}
             </button>
 
-            <button type="button" className="authBack" onClick={() => navigate("/login")}>
+            <button
+              type="button"
+              className="authBack"
+              onClick={() => navigate("/login")}
+              disabled={submitting}
+            >
               ← 로그인으로
             </button>
           </form>

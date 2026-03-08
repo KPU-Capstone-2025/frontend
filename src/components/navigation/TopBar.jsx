@@ -1,11 +1,15 @@
 import { useNavigate } from "react-router-dom";
-import { clearStoredSession, getStoredSession } from "../../services/authStorage.js";
+import {
+  buildCompanyDisplayName,
+  clearStoredSession,
+  getStoredSession,
+} from "../../services/authStorage.js";
 
 export default function TopBar({ title, desc }) {
   const navigate = useNavigate();
   const session = getStoredSession();
 
-  const companyName = session?.companyName || "회사 정보 없음";
+  const companyName = buildCompanyDisplayName(session);
   const userName = session?.name || "admin";
   const role = session?.role || "관리자";
 
@@ -31,7 +35,7 @@ export default function TopBar({ title, desc }) {
 
         <div className="pill" title="상태">
           <span className="pillDot" />
-          실시간 수집 대기
+          실시간 수집 연동
         </div>
 
         <div className="userChip">

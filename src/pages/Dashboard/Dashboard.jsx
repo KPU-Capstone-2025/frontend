@@ -6,7 +6,10 @@ import {
   getContainers,
   getHostOverview,
 } from "../../services/monitoringApi.js";
-import { getStoredSession } from "../../services/authStorage.js";
+import {
+  buildCompanyDisplayName,
+  getStoredSession,
+} from "../../services/authStorage.js";
 
 const RANGE_OPTIONS = [
   { key: "1h", label: "1h" },
@@ -52,6 +55,12 @@ function statusMeta(status) {
   return { label: "오류", className: "is-bad" };
 }
 
+function formatValue(value, unit) {
+  const safe = Number.isFinite(Number(value)) ? Number(value) : 0;
+  if (unit === "%") return `${safe.toFixed(1)}%`;
+  return `${safe.toFixed(1)} ${unit}`;
+}
+
 function MetricCard({ title, value, sub }) {
   return (
     <div className="unifiedMetricCard">
@@ -70,7 +79,7 @@ function MiniChartCard({ title, value, unit, data, footer }) {
       <div className="miniChartCard__head">
         <div className="miniChartCard__title">{title}</div>
         <div className="miniChartCard__value">
-          {value}
+          {Number(value || 0).toFixed(1)}
           {unit ? <span className="miniChartCard__unit">{unit}</span> : null}
         </div>
       </div>
@@ -124,8 +133,7 @@ function RefreshButton({ onClick, loading }) {
 export default function Dashboard() {
   const session = getStoredSession();
 
-  const [range, setRange] = useState("24h");
-
+  const [range, setRange] = useState("1h");
   const [loading, setLoading] = useState(true);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [refreshingContainers, setRefreshingContainers] = useState(false);
@@ -137,7 +145,7 @@ export default function Dashboard() {
   const [containerMetrics, setContainerMetrics] = useState(null);
 
   const companyId = session?.companyId || "";
-  const companyName = session?.companyName || "";
+  const companyName = buildCompanyDisplayName(session);
 
   const selectedContainer = useMemo(() => {
     return containers.find((item) => item.id === selectedContainerId) || null;
@@ -148,6 +156,7 @@ export default function Dashboard() {
 
     try {
       setRefreshingContainers(true);
+      setError("");
       const containersRes = await getContainers(companyId);
       const nextContainers = Array.isArray(containersRes) ? containersRes : [];
       setContainers(nextContainers);
@@ -167,7 +176,11 @@ export default function Dashboard() {
     let alive = true;
 
     async function loadPage() {
-      if (!companyId) return;
+      if (!companyId) {
+        setLoading(false);
+        setError("로그인된 회사 정보가 없습니다.");
+        return;
+      }
 
       try {
         setLoading(true);
@@ -214,9 +227,10 @@ export default function Dashboard() {
         const res = await getContainerMetrics(companyId, selectedContainerId, range);
         if (!alive) return;
         setContainerMetrics(res);
-      } catch {
+      } catch (e) {
         if (!alive) return;
         setContainerMetrics(null);
+        setError(e?.message || "컨테이너 상세 리소스를 불러오지 못했습니다.");
       } finally {
         if (alive) setLoadingMetrics(false);
       }
@@ -233,7 +247,7 @@ export default function Dashboard() {
   const hostMetrics = hostData?.hostMetrics || {};
 
   const hostStatus = statusMeta(host?.status || "healthy");
-  const containerStatus = statusMeta(selectedContainer?.status || "healthy");
+  const containerStatus = statusMeta(selectedContainer?.status || containerMetrics?.status || "healthy");
 
   if (loading) {
     return (
@@ -262,7 +276,7 @@ export default function Dashboard() {
 
         <div className="unifiedCompanyChip">
           <span className="unifiedCompanyChip__label">현재 회사</span>
-          <strong>{companyName || companyId}</strong>
+          <strong>{companyName}</strong>
         </div>
       </div>
 
@@ -274,7 +288,7 @@ export default function Dashboard() {
             <div className="sectionEyebrow">HOST SERVER</div>
             <h3 className="sectionTitle">호스트 서버 전체 리소스</h3>
             <p className="sectionDesc">
-              최상단에는 전체 서버 상태를 먼저 보여주고, 아래에서 컨테이너별 상세를 확인합니다.
+              백엔드의 /api/dashboard/{'{companyId}'}/host 응답값을 기준으로 표시합니다.
             </p>
           </div>
 
@@ -284,54 +298,54 @@ export default function Dashboard() {
         <div className="unifiedMetricGrid">
           <MetricCard
             title="CPU 사용률"
-            value={`${host?.cpuUsage ?? 0}%`}
+            value={formatValue(host?.cpuUsage, host?.cpuUnit || "%")}
             sub="호스트 서버 전체 기준"
           />
           <MetricCard
-            title="메모리 사용률"
-            value={`${host?.memoryUsage ?? 0}%`}
+            title="메모리 사용량"
+            value={formatValue(host?.memoryUsage, host?.memoryUnit || "MB")}
             sub="호스트 서버 전체 기준"
           />
           <MetricCard
-            title="디스크 사용률"
-            value={`${host?.diskUsage ?? 0}%`}
+            title="디스크 사용량"
+            value={formatValue(host?.diskUsage, host?.diskUnit || "%")}
             sub="호스트 서버 전체 기준"
           />
           <MetricCard
             title="네트워크 트래픽"
-            value={`${host?.networkTraffic ?? 0} MB/s`}
+            value={formatValue(host?.networkTraffic, host?.networkUnit || "MB/s")}
             sub="최근 수집 기준"
           />
         </div>
 
         <div className="chartGrid chartGrid--host">
           <MiniChartCard
-            title="CPU 사용률 (%)"
-            value={lastOf(hostMetrics.cpu).toFixed(1)}
-            unit="%"
+            title={`CPU 사용률 (${host?.cpuUnit || "%"})`}
+            value={lastOf(hostMetrics.cpu)}
+            unit={host?.cpuUnit || "%"}
             data={hostMetrics.cpu}
-            footer="호스트 전체 CPU 추이"
+            footer="현재 스냅샷 기준"
           />
           <MiniChartCard
-            title="메모리 사용률 (%)"
-            value={lastOf(hostMetrics.memory).toFixed(1)}
-            unit="%"
+            title={`메모리 사용량 (${host?.memoryUnit || "MB"})`}
+            value={lastOf(hostMetrics.memory)}
+            unit={host?.memoryUnit || "MB"}
             data={hostMetrics.memory}
-            footer="호스트 전체 메모리 추이"
+            footer="현재 스냅샷 기준"
           />
           <MiniChartCard
-            title="디스크 사용률 (%)"
-            value={lastOf(hostMetrics.disk).toFixed(1)}
-            unit="%"
+            title={`디스크 사용량 (${host?.diskUnit || "%"})`}
+            value={lastOf(hostMetrics.disk)}
+            unit={host?.diskUnit || "%"}
             data={hostMetrics.disk}
-            footer="호스트 전체 디스크 추이"
+            footer="현재 스냅샷 기준"
           />
           <MiniChartCard
-            title="네트워크 트래픽 (MB/s)"
-            value={lastOf(hostMetrics.network).toFixed(1)}
-            unit="MB/s"
+            title={`네트워크 트래픽 (${host?.networkUnit || "MB/s"})`}
+            value={lastOf(hostMetrics.network)}
+            unit={host?.networkUnit || "MB/s"}
             data={hostMetrics.network}
-            footer="호스트 전체 네트워크 추이"
+            footer="현재 스냅샷 기준"
           />
         </div>
       </section>
@@ -382,7 +396,7 @@ export default function Dashboard() {
               {selectedContainer?.name || "컨테이너"} 상세 리소스
             </h3>
             <p className="sectionDesc">
-              선택한 컨테이너 기준 CPU, 메모리, 디스크, 네트워크 트래픽 추이를 확인합니다.
+              선택한 컨테이너 기준 CPU, 메모리, 디스크, 네트워크 트래픽 현재 값을 표시합니다.
             </p>
           </div>
 
@@ -396,36 +410,32 @@ export default function Dashboard() {
           <div className="detailSummaryCard">
             <div className="detailSummaryCard__label">평균 CPU</div>
             <div className="detailSummaryCard__value">
-              {containerMetrics?.summary?.cpuAvg?.toFixed?.(1) ??
-                avgOf(containerMetrics?.metrics?.cpu).toFixed(1)}
-              %
+              {(containerMetrics?.summary?.cpuAvg ?? avgOf(containerMetrics?.metrics?.cpu)).toFixed(1)}
+              <span className="detailSummaryCard__unit">{containerMetrics?.units?.cpu || "%"}</span>
             </div>
           </div>
 
           <div className="detailSummaryCard">
             <div className="detailSummaryCard__label">평균 메모리</div>
             <div className="detailSummaryCard__value">
-              {containerMetrics?.summary?.memoryAvg?.toFixed?.(1) ??
-                avgOf(containerMetrics?.metrics?.memory).toFixed(1)}
-              <span className="detailSummaryCard__unit">%</span>
+              {(containerMetrics?.summary?.memoryAvg ?? avgOf(containerMetrics?.metrics?.memory)).toFixed(1)}
+              <span className="detailSummaryCard__unit">{containerMetrics?.units?.memory || "MB"}</span>
             </div>
           </div>
 
           <div className="detailSummaryCard">
             <div className="detailSummaryCard__label">평균 디스크</div>
             <div className="detailSummaryCard__value">
-              {containerMetrics?.summary?.diskAvg?.toFixed?.(1) ??
-                avgOf(containerMetrics?.metrics?.disk).toFixed(1)}
-              <span className="detailSummaryCard__unit">%</span>
+              {(containerMetrics?.summary?.diskAvg ?? avgOf(containerMetrics?.metrics?.disk)).toFixed(1)}
+              <span className="detailSummaryCard__unit">{containerMetrics?.units?.disk || "%"}</span>
             </div>
           </div>
 
           <div className="detailSummaryCard">
             <div className="detailSummaryCard__label">평균 네트워크 트래픽</div>
             <div className="detailSummaryCard__value">
-              {containerMetrics?.summary?.networkAvg?.toFixed?.(1) ??
-                avgOf(containerMetrics?.metrics?.network).toFixed(1)}
-              <span className="detailSummaryCard__unit">MB/s</span>
+              {(containerMetrics?.summary?.networkAvg ?? avgOf(containerMetrics?.metrics?.network)).toFixed(1)}
+              <span className="detailSummaryCard__unit">{containerMetrics?.units?.network || "MB/s"}</span>
             </div>
           </div>
         </div>
@@ -435,32 +445,32 @@ export default function Dashboard() {
         ) : (
           <div className="chartGrid chartGrid--container">
             <MiniChartCard
-              title="CPU 사용률 (%)"
-              value={lastOf(containerMetrics?.metrics?.cpu).toFixed(1)}
-              unit="%"
+              title={`CPU 사용률 (${containerMetrics?.units?.cpu || "%"})`}
+              value={lastOf(containerMetrics?.metrics?.cpu)}
+              unit={containerMetrics?.units?.cpu || "%"}
               data={containerMetrics?.metrics?.cpu || []}
-              footer="선택 컨테이너 CPU 추이"
+              footer="현재 스냅샷 기준"
             />
             <MiniChartCard
-              title="메모리 사용률 (%)"
-              value={lastOf(containerMetrics?.metrics?.memory).toFixed(1)}
-              unit="%"
+              title={`메모리 사용량 (${containerMetrics?.units?.memory || "MB"})`}
+              value={lastOf(containerMetrics?.metrics?.memory)}
+              unit={containerMetrics?.units?.memory || "MB"}
               data={containerMetrics?.metrics?.memory || []}
-              footer="선택 컨테이너 메모리 추이"
+              footer="memoryUsage는 바이트면 MB/GB로 변환"
             />
             <MiniChartCard
-              title="디스크 사용률 (%)"
-              value={lastOf(containerMetrics?.metrics?.disk).toFixed(1)}
-              unit="%"
+              title={`디스크 사용량 (${containerMetrics?.units?.disk || "%"})`}
+              value={lastOf(containerMetrics?.metrics?.disk)}
+              unit={containerMetrics?.units?.disk || "%"}
               data={containerMetrics?.metrics?.disk || []}
-              footer="선택 컨테이너 디스크 추이"
+              footer="현재 스냅샷 기준"
             />
             <MiniChartCard
-              title="네트워크 트래픽 (MB/s)"
-              value={lastOf(containerMetrics?.metrics?.network).toFixed(1)}
-              unit="MB/s"
+              title={`네트워크 트래픽 (${containerMetrics?.units?.network || "MB/s"})`}
+              value={lastOf(containerMetrics?.metrics?.network)}
+              unit={containerMetrics?.units?.network || "MB/s"}
               data={containerMetrics?.metrics?.network || []}
-              footer="선택 컨테이너 전체 네트워크 추이"
+              footer="현재 스냅샷 기준"
             />
           </div>
         )}
