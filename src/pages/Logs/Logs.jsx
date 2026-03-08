@@ -31,8 +31,8 @@ export default function Logs() {
           <div style={{ padding: "18px 4px 6px", lineHeight: 1.8, color: "#475467" }}>
             <div><strong>회사명:</strong> {companyName}</div>
             <div><strong>companyId:</strong> {companyId}</div>
-            <div><strong>사유:</strong> backend zip 안에는 /api/monitoring/logs, /api/auth/monitoring/companies 구현이 없습니다.</div>
-            <div><strong>다음 단계:</strong> 백엔드에 로그 조회 API가 추가되면 그 스펙에 맞춰 바로 붙이면 됩니다.</div>
+            <div><strong>사유:</strong> backend zip 안에는 /api/monitoring/logs, /api/auth/monitoring/companies 구현이 없음.</div>
+            <div><strong>다음 단계:</strong> 백엔드에 로그 조회 API가 추가되면 다시구현.</div>
           </div>
         </section>
       </div>
