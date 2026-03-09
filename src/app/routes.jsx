@@ -13,7 +13,7 @@ import ServerDetail from "../pages/Servers/ServerDetail.jsx";
 import Servers from "../pages/Servers/Servers.jsx";
 
 import Alerts from "../pages/Alerts/Alerts.jsx";
-import Logs from "../pages/Logs/Logs.jsx";
+//import Logs from "../pages/Logs/Logs.jsx";
 
 import NotFound from "../pages/NotFound.jsx";
 
@@ -34,7 +34,7 @@ export const router = createBrowserRouter([
       { path: "/servers/:serverId", element: <ServerDetail /> },
 
       { path: "/alerts", element: <Alerts /> },
-      { path: "/logs", element: <Logs /> },
+      //{ path: "/logs", element: <Logs /> },
     ],
   },
   { path: "*", element: <NotFound /> },
