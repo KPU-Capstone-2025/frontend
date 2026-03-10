@@ -12,14 +12,23 @@ async function request(path, { method = "GET", query } = {}) {
     });
   }
 
-  const res = await fetch(url.toString(), { method });
+  console.log("[API Request]", method, url.toString());
+
+  const res = await fetch(url.toString(), {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  const text = await res.text().catch(() => "");
+  console.log("[API Response]", res.status, text.slice(0, 200));
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
     throw new Error(`API Error ${res.status}: ${text || res.statusText}`);
   }
 
-  return res.json();
+  return text ? JSON.parse(text) : null;
 }
 
 export function getCompanies() {
@@ -32,8 +41,8 @@ export function getDashboardSummary(companyId) {
   });
 }
 
-export function getLogs(companyId, { limit = 200, level, keyword } = {}) {
-  return request("/monitoring/logs", {
-    query: { companyId, limit, level, keyword },
+export function getLogs(companyId, { limit = 100, query, demo } = {}) {
+  return request(`/dashboard/${companyId}/logs`, {
+    query: { limit, query, demo },
   });
 }

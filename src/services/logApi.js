@@ -27,6 +27,8 @@ function parseTimeToMs(tsText) {
   return d.getTime();
 }
 
+// (더 이상 필요 없음 - timestamp는 백엔드에서 나노초 문자열로 제공됨)
+
 function detectLevel(message) {
   const m = (message || "").toLowerCase();
   if (["error", "exception", "failed", "panic", "fatal", "stacktrace", "oom", "killed"].some((k) => m.includes(k))) {
@@ -85,31 +87,43 @@ function normalizeLogEntry(it, idx) {
   // 2) time 같은 필드만 있어도 파싱
   // 3) 둘 다 없으면 “현재시각 - idx초”로 대체
 
-  const message = it?.message ?? it?.log ?? it?.line ?? "";
-  const tsText = it?.tsText ?? it?.time ?? it?.timestamp ?? "";
+  const timestamp = it?.timestamp ?? "";
+  const message = it?.message ?? "";
+  const labels = it?.labels ?? {};
+  const isDemo = labels.source === "demo";
 
   let ts = null;
+  if (timestamp) {
+    const nanosec = Number(timestamp);
+    if (Number.isFinite(nanosec)) {
+      ts = Math.floor(nanosec / 1_000_000); // 나노초 -> ms
+    } else {
+      console.warn("[Logs] Invalid timestamp value:", timestamp);
+    }
+  }
+  if (!ts || !Number.isFinite(ts)) {
+    ts = Date.now() - idx * 1000;
+  }
 
-  if (typeof it?.ts === "number") ts = it.ts;
-  if (!ts) ts = parseTimeToMs(tsText);
-  if (!ts) ts = Date.now() - idx * 1000;
-
-  const level = it?.level ?? detectLevel(message);
-  const container = it?.container ?? it?.app ?? it?.service ?? it?.job ?? "unknown";
-  const tag = it?.tag ?? buildTag(level, message);
+  const level = detectLevel(message);
+  const container = labels.job ?? "unknown";
+  const tag = buildTag(level, message);
+  const tsText = new Date(ts).toISOString().replace("T", " ").slice(0, 19);
 
   return {
     id: `log-${ts}-${idx}`,
     level,
     container,
     ts,
-    tsText: tsText || new Date(ts).toISOString().replace("T", " ").slice(0, 19),
+    tsText,
     message,
     tag,
     host: "-",
     ip: "-",
     service: container,
-    detail: buildDetail({ tsText: tsText || "", level, container, message }),
+    isDemo,
+    labels,
+    detail: buildDetail({ tsText, level, container, message }),
   };
 }
 
@@ -131,7 +145,7 @@ export function getLogFilterOptions(containers = []) {
 
 export async function fetchLogs({
   companyId,
-  limit = 500,
+  limit = 100,
   timeRange = "24h",
   container = "all",
   level = "all",
@@ -151,27 +165,46 @@ export async function fetchLogs({
     };
   }
 
-  // 1) 백엔드에서 최신 N개 가져오기
-  const raw = await getLogs(companyId, { limit });
-  const list = Array.isArray(raw) ? raw : [];
+  // 1) 백엔드에서 로그 조회
+  const fetchStart = performance.now();
+  const response = await getLogs(companyId, { limit });
+  const fetchEnd = performance.now();
+  console.log(`[Logs] Fetch took ${(fetchEnd - fetchStart).toFixed(0)}ms`);
+  const rawContainers = response?.containers ?? [];
+  const list = Array.isArray(rawContainers) ? rawContainers : [];
 
   // 2) 프론트에서 UI용 형태로 정규화
+  const normalizeStart = performance.now();
   const normalized = list.map((it, idx) => normalizeLogEntry(it, idx));
+  const normalizeEnd = performance.now();
+  console.log(`[Logs] Normalize ${list.length} items took ${(normalizeEnd - normalizeStart).toFixed(0)}ms`);
 
   // 3) 시간 필터
   const now = Date.now();
   const windowMs = timeRangeToMs(timeRange);
   const minTs = now - windowMs;
 
-  let filtered = normalized.filter((row) => row.ts >= minTs);
+  let filtered = normalized.filter((row) => {
+    if (!Number.isFinite(row.ts)) {
+      console.warn("[Logs] Invalid ts:", row.id, row.ts);
+      return false;
+    }
+    return row.ts >= minTs;
+  });
+  console.log(`[Logs] Time filter: ${list.length} -> ${filtered.length}`);
 
   if (container !== "all") {
+    const before = filtered.length;
     filtered = filtered.filter((row) => row.container === container);
+    console.log(`[Logs] Container '${container}' filter: ${before} -> ${filtered.length}`);
   }
   if (level !== "all") {
+    const before = filtered.length;
     filtered = filtered.filter((row) => row.level === level);
+    console.log(`[Logs] Level '${level}' filter: ${before} -> ${filtered.length}`);
   }
   if (q.trim()) {
+    const before = filtered.length;
     filtered = filtered.filter(
       (row) =>
         includesIgnoreCase(row.message, q) ||
@@ -179,6 +212,7 @@ export async function fetchLogs({
         includesIgnoreCase(row.level, q) ||
         includesIgnoreCase(row.tag, q)
     );
+    console.log(`[Logs] Search '${q}' filter: ${before} -> ${filtered.length}`);
   }
 
   // 4) 카운트
@@ -202,8 +236,8 @@ export async function fetchLogs({
 
   // 컨테이너 옵션은 “전체(normalized)” 기준으로 만들면 더 안정적
   const containers = Array.from(new Set(normalized.map((d) => d.container)));
-
-  return {
+  console.log(`[Logs] Total processing: ${list.length} logs, ${filtered.length} filtered, ${items.length} displayed`);
+    return {
     items,
     total,
     totalPages,
