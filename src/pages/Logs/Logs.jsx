@@ -79,6 +79,11 @@ export default function Logs() {
     return "정상";
   }
 
+  function toggleRow(item) {
+    if (!item.interpretation) return;
+    setExpandedLogId((prev) => (prev === item.id ? null : item.id));
+  }
+
   return (
     <div className="logsPage">
       <div className="logsWrap">
@@ -181,7 +186,20 @@ export default function Logs() {
               <div className="emptyState">조건에 맞는 로그가 없습니다.</div>
             ) : (
               logs.items.map((item) => (
-                <div key={item.id} className="logRow">
+                <div
+                  key={item.id}
+                  className={`logRow ${item.interpretation ? "expandable" : ""} ${expandedLogId === item.id ? "active" : ""}`}
+                  onClick={() => toggleRow(item)}
+                  role={item.interpretation ? "button" : undefined}
+                  tabIndex={item.interpretation ? 0 : undefined}
+                  onKeyDown={(e) => {
+                    if (!item.interpretation) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleRow(item);
+                    }
+                  }}
+                >
                   <div className="td timeCell">
                     <div className="timeMain mono">{item.time}</div>
                     <div className="timeSub">{item.date}</div>
@@ -196,39 +214,27 @@ export default function Logs() {
                   </div>
                   <div className="td msgCol">
                     <div className="msgText">{item.text}</div>
-                    <div className="msgHint">
-                      <span className={`riskBadge ${item.interpretation?.risk || "normal"}`}>{riskLabel(item.interpretation?.risk)}</span>
-                      <span>해석: {item.interpretation?.title || "-"}</span>
-                      <button
-                        type="button"
-                        className={`expandBtn ${expandedLogId === item.id ? "open" : ""}`}
-                        onClick={() => setExpandedLogId((prev) => (prev === item.id ? null : item.id))}
-                        aria-label="로그 해석 상세 보기"
-                      >
-                        ▾
-                      </button>
-                    </div>
-                    {expandedLogId === item.id && (
+                    {item.interpretation ? (
+                      <div className="msgHint clickable">
+                        <span className={`riskBadge ${item.interpretation.risk || "normal"}`}>{riskLabel(item.interpretation.risk)}</span>
+                        <span>해석: {item.interpretation.title || "-"}</span>
+                        <span className={`rowArrow ${expandedLogId === item.id ? "open" : ""}`}>▾</span>
+                      </div>
+                    ) : (
+                      <div className="msgHint muted">해석 없음</div>
+                    )}
+                    {item.interpretation && expandedLogId === item.id && (
                       <div className="interpretPanel">
                         <div className="interpretRow">
-                          <span className="interpretKey">설명</span>
-                          <span className="interpretVal">{item.interpretation?.detail || "-"}</span>
+                          <span className="interpretKey">원인</span>
+                          <span className="interpretVal">{item.interpretation.detail || "-"}</span>
                         </div>
-                        {item.interpretation?.needsAction ? (
+                        {item.interpretation.action && (
                           <div className="interpretRow">
-                            <span className="interpretKey">해결 방안</span>
-                            <span className="interpretVal">{item.interpretation?.remedy || "-"}</span>
-                          </div>
-                        ) : (
-                          <div className="interpretRow">
-                            <span className="interpretKey">상태</span>
-                            <span className="interpretVal">문제가 없는 로그입니다.</span>
+                            <span className="interpretKey">조치방안</span>
+                            <span className="interpretVal">{item.interpretation.action}</span>
                           </div>
                         )}
-                        <div className="interpretRow">
-                          <span className="interpretKey">근거</span>
-                          <span className="interpretVal mono">{item.interpretation?.evidence || "-"}</span>
-                        </div>
                       </div>
                     )}
                   </div>

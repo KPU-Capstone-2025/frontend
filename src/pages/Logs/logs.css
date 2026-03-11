@@ -271,6 +271,10 @@
   background: rgba(11,43,255,0.04);
 }
 
+.logRow.expandable{
+  cursor: pointer;
+}
+
 .logRow.active{
   background: rgba(11,43,255,0.08);
   outline: 2px solid rgba(11,43,255,0.18);
@@ -311,21 +315,27 @@
   font-weight: 800;
 }
 
-.expandBtn{
+.msgHint.clickable{
+  color: #1e3a8a;
+}
+
+.msgHint.muted{
+  color: rgba(15,23,42,0.45);
+}
+
+.rowArrow{
   margin-left: 4px;
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  border: 1px solid rgba(15,23,42,0.14);
-  background: #fff;
-  color: rgba(15,23,42,0.72);
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid rgba(15,23,42,0.12);
   display: inline-grid;
   place-items: center;
-  cursor: pointer;
+  color: rgba(15,23,42,0.68);
   transition: transform 0.16s ease, background-color 0.16s ease;
 }
 
-.expandBtn.open{
+.rowArrow.open{
   transform: rotate(180deg);
   background: rgba(11,43,255,0.08);
   border-color: rgba(11,43,255,0.22);
