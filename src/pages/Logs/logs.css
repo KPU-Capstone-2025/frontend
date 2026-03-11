@@ -86,6 +86,39 @@
   flex-wrap: wrap;
 }
 
+.sourceTabs{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(15,23,42,0.06);
+  flex: 1 1 320px;
+  min-width: 280px;
+}
+
+.sourceTab{
+  height: 34px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(15,23,42,0.7);
+  font-weight: 900;
+  font-size: 11px;
+  cursor: pointer;
+  flex: 1 1 0;
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.sourceTab.on{
+  background: #fff;
+  color: var(--text);
+  box-shadow: var(--shadowSoft);
+}
+
 .logPill{
   height: 40px;
   padding: 0 10px;
@@ -187,16 +220,28 @@
   border: 1px solid var(--line);
   border-radius: var(--radiusLg);
   box-shadow: var(--shadow);
-  overflow: hidden;
+  overflow: auto;
 }
 
 .logTableHead{
   display: grid;
-  grid-template-columns: 120px 200px 160px 1fr 140px;
+  grid-template-columns: 170px 120px 140px minmax(520px, 1fr);
   gap: 0;
   padding: 12px 14px;
   border-bottom: 1px solid var(--line);
   background: rgba(15,23,42,0.02);
+  min-width: 980px;
+}
+
+.logsSearchRow{
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(15,23,42,0.01);
+}
+
+.logsSearchInput{
+  width: 100%;
+  max-width: 460px;
 }
 
 .th{
@@ -208,12 +253,13 @@
 .logTableBody{
   max-height: 560px;
   overflow: auto;
+  min-width: 950px;
 }
 
 .logRow{
   width: 100%;
   display: grid;
-  grid-template-columns: 120px 200px 160px 1fr 140px;
+  grid-template-columns: 170px 120px 140px minmax(520px, 1fr);
   gap: 0;
   padding: 12px 14px;
   border-bottom: 1px solid rgba(15,23,42,0.06);
@@ -241,6 +287,126 @@
 
 .td.msg{
   color: rgba(15,23,42,0.82);
+  word-break: break-word;
+}
+
+.msgCol{
+  display: grid;
+  gap: 6px;
+  align-items: start;
+}
+
+.msgText{
+  color: rgba(15,23,42,0.82);
+  word-break: break-word;
+  font-size: 13px;
+}
+
+.msgHint{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(15,23,42,0.56);
+  font-weight: 800;
+}
+
+.expandBtn{
+  margin-left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(15,23,42,0.14);
+  background: #fff;
+  color: rgba(15,23,42,0.72);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.16s ease, background-color 0.16s ease;
+}
+
+.expandBtn.open{
+  transform: rotate(180deg);
+  background: rgba(11,43,255,0.08);
+  border-color: rgba(11,43,255,0.22);
+  color: #1e3a8a;
+}
+
+.interpretPanel{
+  margin-top: 6px;
+  border: 1px solid rgba(15,23,42,0.1);
+  background: rgba(15,23,42,0.03);
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.interpretRow{
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.interpretKey{
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(15,23,42,0.58);
+}
+
+.interpretVal{
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(15,23,42,0.82);
+  line-height: 1.45;
+}
+
+.riskBadge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  min-width: 40px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(15,23,42,0.12);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.riskBadge.normal{
+  background: rgba(34,197,94,0.10);
+  border-color: rgba(34,197,94,0.22);
+  color: #166534;
+}
+
+.riskBadge.warn{
+  background: rgba(245,158,11,0.12);
+  border-color: rgba(245,158,11,0.24);
+  color: #92400e;
+}
+
+.riskBadge.danger{
+  background: rgba(239,68,68,0.12);
+  border-color: rgba(239,68,68,0.24);
+  color: #b91c1c;
+}
+
+.timeCell{
+  display: grid;
+  gap: 2px;
+}
+
+.timeMain{
+  font-weight: 900;
+  color: rgba(15,23,42,0.86);
+}
+
+.timeSub{
+  font-size: 11px;
+  color: rgba(15,23,42,0.56);
+  font-weight: 800;
 }
 
 .mono{
@@ -260,6 +426,31 @@
 .lv.error{ background: rgba(239,68,68,0.10); border-color: rgba(239,68,68,0.22); color: #b91c1c; }
 .lv.warn{ background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.22); color: #92400e; }
 .lv.info{ background: rgba(59,130,246,0.10); border-color: rgba(59,130,246,0.20); color: #1d4ed8; }
+
+.sourceBadge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15,23,42,0.12);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sourceBadge.host{
+  background: rgba(2,132,199,0.10);
+  border-color: rgba(2,132,199,0.24);
+  color: #0c4a6e;
+}
+
+.sourceBadge.container{
+  background: rgba(22,163,74,0.10);
+  border-color: rgba(22,163,74,0.24);
+  color: #166534;
+}
 
 .tag{
   height: 24px;
