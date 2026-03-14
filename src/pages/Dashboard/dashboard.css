@@ -53,6 +53,13 @@
   border-radius: 22px;
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
   padding: 18px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.unifiedPanel--danger {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: linear-gradient(180deg, #ffffff 0%, #fff5f5 100%);
+  box-shadow: 0 18px 45px rgba(239, 68, 68, 0.14);
 }
 
 .unifiedPanel__head {
@@ -130,6 +137,13 @@
   padding: 16px;
   border: 1px solid rgba(15, 23, 42, 0.06);
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.unifiedMetricCard.is-danger {
+  border-color: rgba(239, 68, 68, 0.26);
+  background: linear-gradient(180deg, #fff5f5 0%, #ffe8e8 100%);
+  box-shadow: 0 12px 30px rgba(239, 68, 68, 0.14);
 }
 
 .unifiedMetricCard__title {
@@ -139,12 +153,21 @@
   margin-bottom: 8px;
 }
 
+.unifiedMetricCard.is-danger .unifiedMetricCard__title,
+.unifiedMetricCard.is-danger .unifiedMetricCard__sub {
+  color: #b91c1c;
+}
+
 .unifiedMetricCard__value {
   font-size: 28px;
   line-height: 1;
   font-weight: 900;
   letter-spacing: -0.03em;
   color: #0f172a;
+}
+
+.unifiedMetricCard.is-danger .unifiedMetricCard__value {
+  color: #b91c1c;
 }
 
 .unifiedMetricCard__sub {
@@ -159,10 +182,7 @@
   gap: 12px;
 }
 
-.chartGrid--host {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
+.chartGrid--host,
 .chartGrid--container {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -172,6 +192,13 @@
   border: 1px solid rgba(15, 23, 42, 0.06);
   background: #fcfdff;
   padding: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.miniChartCard.is-danger {
+  border-color: rgba(239, 68, 68, 0.26);
+  background: linear-gradient(180deg, #fff8f8 0%, #fff1f1 100%);
+  box-shadow: 0 12px 28px rgba(239, 68, 68, 0.14);
 }
 
 .miniChartCard__head {
@@ -196,11 +223,21 @@
   white-space: nowrap;
 }
 
+.miniChartCard.is-danger .miniChartCard__title,
+.miniChartCard.is-danger .miniChartCard__value,
+.miniChartCard.is-danger .miniChartCard__footer {
+  color: #b91c1c;
+}
+
 .miniChartCard__unit {
   margin-left: 4px;
   font-size: 11px;
   color: #64748b;
   font-weight: 800;
+}
+
+.miniChartCard.is-danger .miniChartCard__unit {
+  color: #ef4444;
 }
 
 .miniChartCard__body {
@@ -211,6 +248,13 @@
     linear-gradient(to bottom, rgba(15, 23, 42, 0.03), rgba(15, 23, 42, 0.01)),
     #fff;
   border: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.miniChartCard.is-danger .miniChartCard__body {
+  border-color: rgba(239, 68, 68, 0.16);
+  background:
+    linear-gradient(to bottom, rgba(239, 68, 68, 0.06), rgba(239, 68, 68, 0.015)),
+    #fff;
 }
 
 .miniChartSvg {
@@ -225,6 +269,11 @@
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.miniChartCard.is-danger .miniChartSvg__path {
+  stroke: #ef4444;
+  stroke-width: 2.8;
 }
 
 .miniChartCard__footer {
@@ -293,6 +342,44 @@
   }
 }
 
+.containerWorkspace {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.containerWorkspace__list,
+.containerWorkspace__detail {
+  border-radius: 20px;
+  border: 1px solid rgba(15, 23, 42, 0.07);
+  background: #fbfdff;
+}
+
+.containerWorkspace__list {
+  padding: 14px;
+}
+
+.containerWorkspace__detail {
+  padding: 16px;
+}
+
+.containerWorkspace__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.containerDetailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
 .containerNameList {
   display: grid;
   gap: 10px;
@@ -302,7 +389,10 @@
   appearance: none;
   -webkit-appearance: none;
   width: 100%;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   text-align: left;
   padding: 16px 18px;
   border: 1px solid rgba(15, 23, 42, 0.08);
@@ -320,6 +410,12 @@
     border-color 0.15s ease,
     box-shadow 0.15s ease,
     transform 0.15s ease;
+}
+
+.containerNameItem__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .containerNameItem:hover {
@@ -396,11 +492,22 @@
   border: 1px solid rgba(15, 23, 42, 0.06);
 }
 
+.detailSummaryCard.is-danger {
+  border-color: rgba(239, 68, 68, 0.24);
+  background: linear-gradient(180deg, #fff7f7 0%, #ffeded 100%);
+}
+
 .detailSummaryCard__label {
   font-size: 12px;
   color: #64748b;
   font-weight: 800;
   margin-bottom: 10px;
+}
+
+.detailSummaryCard.is-danger .detailSummaryCard__label,
+.detailSummaryCard.is-danger .detailSummaryCard__value,
+.detailSummaryCard.is-danger .detailSummaryCard__unit {
+  color: #b91c1c;
 }
 
 .detailSummaryCard__value {
@@ -458,12 +565,18 @@
   }
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1320px) {
   .unifiedMetricGrid,
   .detailSummaryRow {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .containerWorkspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1200px) {
   .chartGrid--host,
   .chartGrid--container {
     grid-template-columns: 1fr;
@@ -472,7 +585,8 @@
 
 @media (max-width: 860px) {
   .unifiedIntro,
-  .unifiedPanel__head {
+  .unifiedPanel__head,
+  .containerDetailHead {
     flex-direction: column;
     align-items: stretch;
   }
@@ -489,5 +603,10 @@
   .unifiedMetricGrid,
   .detailSummaryRow {
     grid-template-columns: 1fr;
+  }
+
+  .containerNameItem {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

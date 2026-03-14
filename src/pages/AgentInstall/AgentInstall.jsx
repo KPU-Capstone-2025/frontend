@@ -136,8 +136,8 @@ export default function AgentInstall() {
     return [
       "curl -fLO http://agent.monittoring.co.kr/metric-agent",
       "chmod +x metric-agent",
-      `export MONITORING_ID="${monitoringId}"`,
-      `export COLLECTOR_URL="${collectorUrl}"`,
+      `export MONITORING_ID=\"${monitoringId}\"`,
+      `export COLLECTOR_URL=\"${collectorUrl}\"`,
       "sudo -E nohup ./metric-agent > metric.log 2>&1 &",
     ].join("\n");
   }, [collectorUrl, monitoringId]);
@@ -184,8 +184,40 @@ export default function AgentInstall() {
         </SectionCard>
 
         <SectionCard
+          icon="⌨️"
+          title="방법 1. curl 명령어로 설치 및 실행"
+          sub="Docker가 없는 환경에서는 실행 파일을 내려받아 직접 실행할 수 있습니다."
+          right={<span className="agentChip">빠른 설치</span>}
+        >
+          <div className="installInfo">
+            <div className="installInfo__title">설명</div>
+            <div className="installInfo__text">
+              아래 명령어를 그대로 실행하면 에이전트 다운로드, 권한 부여, 환경 변수 설정,
+              실행까지 한 번에 진행할 수 있습니다.
+            </div>
+          </div>
+
+          <div className="stepList">
+            <div className="stepItem">
+              <div className="stepItem__num">1</div>
+              <div className="stepItem__body">
+                <div className="stepItem__title">에이전트 실행</div>
+                <div className="stepItem__desc">
+                  백엔드에서 내려준 MONITORING_ID와 COLLECTOR_URL을 그대로 사용합니다.
+                </div>
+                <CodeBlock
+                  code={curlCommand}
+                  copyLabel="curl 설치 명령 복사"
+                  disabled={loading || !!error}
+                />
+              </div>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard
           icon="🐳"
-          title="방법 1. Docker 이미지로 실행 (권장)"
+          title="방법 2. Docker 이미지로 실행"
           sub="서버에 Docker가 설치되어 있다면 가장 간단하게 실행할 수 있습니다."
           right={<span className="agentChip">권장</span>}
         >
@@ -217,37 +249,6 @@ export default function AgentInstall() {
                 <CodeBlock
                   code={dockerRunCommand}
                   copyLabel="Docker 실행 명령 복사"
-                  disabled={loading || !!error}
-                />
-              </div>
-            </div>
-          </div>
-        </SectionCard>
-
-        <SectionCard
-          icon="⌨️"
-          title="방법 2. curl 명령어로 설치 및 실행"
-          sub="Docker가 없는 환경에서는 실행 파일을 내려받아 직접 실행할 수 있습니다."
-        >
-          <div className="installInfo">
-            <div className="installInfo__title">설명</div>
-            <div className="installInfo__text">
-              아래 명령어를 그대로 실행하면 에이전트 다운로드, 권한 부여, 환경 변수 설정,
-              실행까지 한 번에 진행할 수 있습니다.
-            </div>
-          </div>
-
-          <div className="stepList">
-            <div className="stepItem">
-              <div className="stepItem__num">1</div>
-              <div className="stepItem__body">
-                <div className="stepItem__title">에이전트 실행</div>
-                <div className="stepItem__desc">
-                  백엔드에서 내려준 MONITORING_ID와 COLLECTOR_URL을 그대로 사용합니다.
-                </div>
-                <CodeBlock
-                  code={curlCommand}
-                  copyLabel="curl 설치 명령 복사"
                   disabled={loading || !!error}
                 />
               </div>
