@@ -32,6 +32,7 @@
   font-weight: 900;
   letter-spacing: -0.02em;
 }
+
 .sideNav__sub {
   font-size: 12px;
   color: rgba(233, 236, 255, 0.72);
@@ -68,9 +69,11 @@
   display: grid;
   place-items: center;
 }
+
 .navItem__label {
   font-weight: 800;
 }
+
 .navItem__tag {
   margin-left: auto;
   font-size: 11px;
@@ -94,64 +97,219 @@
 
 /* ===== TopBar ===== */
 .topBar {
+  width: 100%;
+  min-height: 72px;
   background: #ffffff;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  padding: 16px 22px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 14px 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.topBar__left {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .topBar__title {
-  font-weight: 900;
+  margin: 0;
   font-size: 18px;
+  font-weight: 900;
   letter-spacing: -0.02em;
+  color: #0f172a;
+  line-height: 1.2;
 }
 
 .topBar__desc {
-  margin-top: 4px;
-  color: #666;
-  font-size: 13px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  line-height: 1.4;
 }
 
 .topBar__right {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.topBar__btn {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  padding: 10px 12px;
-  background: #fff;
-  font-weight: 800;
-}
-
-.topBar__user {
-  display: flex;
-  align-items: center;
+  justify-content: flex-end;
   gap: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 14px;
-  padding: 8px 10px;
-  background: #fff;
+  white-space: nowrap;
 }
 
-.topBar__avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  background: rgba(11, 43, 255, 0.12);
-  display: grid;
-  place-items: center;
+.topBarCompany {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  box-sizing: border-box;
 }
 
-.topBar__userName {
-  font-weight: 900;
-  font-size: 13px;
-}
-.topBar__userRole {
+.topBarCompany__label {
   font-size: 12px;
-  color: #666;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.topBarCompany__name {
+  font-size: 13px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 800;
+  box-sizing: border-box;
+}
+
+.pillDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
+  flex-shrink: 0;
+}
+
+.logoutBtn {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.logoutBtn:hover {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.14);
+  transform: translateY(-1px);
+}
+
+.logoutBtn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 1100px) {
+  .topBar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topBar__right {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 640px) {
+  .topBar {
+    padding: 12px 16px;
+  }
+
+  .topBar__title {
+    font-size: 16px;
+  }
+
+  .topBarCompany,
+  .pill,
+  .logoutBtn {
+    height: 36px;
+  }
+}
+.topBar{
+  width:100%;
+  height:64px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  padding:0 24px;
+
+  background:white;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.topBarLeft{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.topBarTitle{
+  font-size:20px;
+  font-weight:800;
+  color:#111827;
+}
+
+.topBarDesc{
+  font-size:13px;
+  color:#6b7280;
+}
+
+.topBarRight{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.statusIndicator{
+  display:flex;
+  align-items:center;
+  gap:6px;
+
+  font-size:13px;
+  font-weight:600;
+  color:#374151;
+}
+
+.statusDot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#22c55e;
+}
+
+.logoutBtn{
+  height:34px;
+  padding:0 12px;
+
+  border-radius:8px;
+  border:1px solid #e5e7eb;
+
+  background:white;
+  cursor:pointer;
+
+  font-size:13px;
+  font-weight:600;
+}
+
+.logoutBtn:hover{
+  background:#f3f4f6;
 }

@@ -8,10 +8,7 @@ import {
   mergeContainerMetricsSnapshot,
   mergeHostSnapshot,
 } from "../../services/monitoringApi.js";
-import {
-  buildCompanyDisplayName,
-  getStoredSession,
-} from "../../services/authStorage.js";
+import { getStoredSession } from "../../services/authStorage.js";
 
 const RANGE_OPTIONS = [
   { key: "1h", label: "1h" },
@@ -20,6 +17,13 @@ const RANGE_OPTIONS = [
 ];
 
 const POLLING_INTERVAL = 15000;
+const CPU_ALERT_THRESHOLD = 85;
+
+const dashboardCache = new Map();
+
+function getCachedDashboardState(companyId) {
+  return dashboardCache.get(companyId) || null;
+}
 
 function lastOf(series = []) {
   if (!series.length) return 0;
@@ -83,9 +87,13 @@ function formatDateTime(value) {
   });
 }
 
-function MetricCard({ title, value, sub }) {
+function isCpuDanger(value) {
+  return Number(value || 0) >= CPU_ALERT_THRESHOLD;
+}
+
+function MetricCard({ title, value, sub, danger = false }) {
   return (
-    <div className="unifiedMetricCard">
+    <div className={`unifiedMetricCard ${danger ? "is-danger" : ""}`}>
       <div className="unifiedMetricCard__title">{title}</div>
       <div className="unifiedMetricCard__value">{value}</div>
       <div className="unifiedMetricCard__sub">{sub}</div>
@@ -93,11 +101,11 @@ function MetricCard({ title, value, sub }) {
   );
 }
 
-function MiniChartCard({ title, value, unit, data, footer }) {
+function MiniChartCard({ title, value, unit, data, footer, danger = false }) {
   const path = useMemo(() => buildSparkPath(data), [data]);
 
   return (
-    <div className="miniChartCard">
+    <div className={`miniChartCard ${danger ? "is-danger" : ""}`}>
       <div className="miniChartCard__head">
         <div className="miniChartCard__title">{title}</div>
         <div className="miniChartCard__value">
@@ -155,22 +163,51 @@ function RefreshButton({ onClick, loading }) {
 export default function Dashboard() {
   const session = getStoredSession();
   const companyId = session?.id || "";
-  const companyName = buildCompanyDisplayName(session);
+  const cached = getCachedDashboardState(companyId);
 
-  const [range, setRange] = useState("1h");
-  const [loading, setLoading] = useState(true);
-  const [loadingMetrics, setLoadingMetrics] = useState(false);
+  const [range, setRange] = useState(cached?.range || "1h");
+  const [loading, setLoading] = useState(!cached);
+  const [loadingMetrics, setLoadingMetrics] = useState(!cached?.containerMetrics);
   const [refreshingContainers, setRefreshingContainers] = useState(false);
   const [polling, setPolling] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(cached?.error || "");
 
-  const [hostData, setHostData] = useState(null);
-  const [containers, setContainers] = useState([]);
-  const [selectedContainerId, setSelectedContainerId] = useState("");
-  const [containerMetrics, setContainerMetrics] = useState(null);
+  const [hostData, setHostData] = useState(cached?.hostData || null);
+  const [containers, setContainers] = useState(cached?.containers || []);
+  const [selectedContainerId, setSelectedContainerId] = useState(
+    cached?.selectedContainerId || ""
+  );
+  const [containerMetrics, setContainerMetrics] = useState(
+    cached?.containerMetrics || null
+  );
 
   const hostPollingRef = useRef(null);
   const containerPollingRef = useRef(null);
+
+  useEffect(() => {
+    if (!companyId) return;
+
+    dashboardCache.set(companyId, {
+      range,
+      loading,
+      loadingMetrics,
+      error,
+      hostData,
+      containers,
+      selectedContainerId,
+      containerMetrics,
+    });
+  }, [
+    companyId,
+    range,
+    loading,
+    loadingMetrics,
+    error,
+    hostData,
+    containers,
+    selectedContainerId,
+    containerMetrics,
+  ]);
 
   const selectedContainer = useMemo(() => {
     return containers.find((item) => item.id === selectedContainerId) || null;
@@ -208,6 +245,11 @@ export default function Dashboard() {
         return;
       }
 
+      if (cached?.hostData && cached?.containers?.length) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError("");
@@ -223,7 +265,15 @@ export default function Dashboard() {
 
         setHostData(hostRes);
         setContainers(nextContainers);
-        setSelectedContainerId(nextContainers[0]?.id || "");
+        setSelectedContainerId((prev) => {
+          if (prev && nextContainers.some((item) => item.id === prev)) {
+            return prev;
+          }
+          return cached?.selectedContainerId &&
+            nextContainers.some((item) => item.id === cached.selectedContainerId)
+            ? cached.selectedContainerId
+            : nextContainers[0]?.id || "";
+        });
       } catch (e) {
         if (cancelled) return;
         setError(e?.message || "대시보드 데이터를 불러오지 못했습니다.");
@@ -239,7 +289,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [companyId]);
+  }, [cached, companyId]);
 
   useEffect(() => {
     if (!companyId || loading) return;
@@ -294,6 +344,18 @@ export default function Dashboard() {
     async function loadContainerMetrics(showLoading = true) {
       if (!companyId || !selectedContainerId) {
         setContainerMetrics(null);
+        setLoadingMetrics(false);
+        return;
+      }
+
+      const sameContainerCache =
+        cached?.selectedContainerId === selectedContainerId && cached?.range === range
+          ? cached?.containerMetrics
+          : null;
+
+      if (showLoading && sameContainerCache) {
+        setContainerMetrics(sameContainerCache);
+        setLoadingMetrics(false);
         return;
       }
 
@@ -329,7 +391,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [companyId, selectedContainerId, range]);
+  }, [cached, companyId, selectedContainerId, range]);
 
   useEffect(() => {
     if (!companyId || !selectedContainerId) return;
@@ -364,9 +426,14 @@ export default function Dashboard() {
   const host = hostData?.host;
   const hostMetrics = hostData?.hostMetrics || {};
 
-  const hostStatus = statusMeta(host?.status || "healthy");
+  const hostCpuDanger = isCpuDanger(host?.cpuUsage);
+  const containerCpuDanger = isCpuDanger(lastOf(containerMetrics?.metrics?.cpu));
+
+  const hostStatus = statusMeta(host?.status || (hostCpuDanger ? "bad" : "healthy"));
   const containerStatus = statusMeta(
-    selectedContainer?.status || containerMetrics?.status || "healthy"
+    selectedContainer?.status ||
+      containerMetrics?.status ||
+      (containerCpuDanger ? "bad" : "healthy")
   );
 
   if (loading) {
@@ -395,16 +462,11 @@ export default function Dashboard() {
             로그인한 회사 기준으로 호스트 서버와 컨테이너 리소스를 한 번에 확인합니다.
           </p>
         </div>
-
-        <div className="unifiedCompanyChip">
-          <span className="unifiedCompanyChip__label">현재 회사</span>
-          <strong>{companyName}</strong>
-        </div>
       </div>
 
       {error ? <div className="unifiedError">{error}</div> : null}
 
-      <section className="unifiedPanel">
+      <section className={`unifiedPanel ${hostCpuDanger ? "unifiedPanel--danger" : ""}`}>
         <div className="unifiedPanel__head">
           <div>
             <div className="sectionEyebrow">HOST SERVER</div>
@@ -417,7 +479,7 @@ export default function Dashboard() {
           <div className="detailHeadRight">
             <div className={`statusPill ${hostStatus.className}`}>{hostStatus.label}</div>
             <div className="tableSummary">
-              {polling ? "자동 갱신 중..." : "15초 자동 갱신"}
+              {hostCpuDanger ? "CPU 급상승 감지" : polling ? "자동 갱신 중..." : "15초 자동 갱신"}
             </div>
           </div>
         </div>
@@ -426,7 +488,12 @@ export default function Dashboard() {
           <MetricCard
             title="CPU 사용률"
             value={formatValue(host?.cpuUsage, host?.cpuUnit || "%")}
-            sub={`마지막 수집: ${formatDateTime(host?.lastUpdate)}`}
+            sub={
+              hostCpuDanger
+                ? `위험 수준 감지 · 마지막 수집: ${formatDateTime(host?.lastUpdate)}`
+                : `마지막 수집: ${formatDateTime(host?.lastUpdate)}`
+            }
+            danger={hostCpuDanger}
           />
           <MetricCard
             title="메모리 사용량"
@@ -451,7 +518,8 @@ export default function Dashboard() {
             value={lastOf(hostMetrics.cpu)}
             unit={host?.cpuUnit || "%"}
             data={hostMetrics.cpu}
-            footer="15초 간격 최근 스냅샷"
+            footer={hostCpuDanger ? `경고 임계치 ${CPU_ALERT_THRESHOLD}% 이상` : "15초 간격 최근 스냅샷"}
+            danger={hostCpuDanger}
           />
           <MiniChartCard
             title={`메모리 사용량 (${host?.memoryUnit || "MB"})`}
@@ -477,13 +545,13 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="unifiedPanel">
+      <section className={`unifiedPanel ${containerCpuDanger ? "unifiedPanel--danger" : ""}`}>
         <div className="unifiedPanel__head">
           <div>
             <div className="sectionEyebrow">CONTAINERS</div>
-            <h3 className="sectionTitle">컨테이너 목록</h3>
+            <h3 className="sectionTitle">컨테이너 목록 + 상세 리소스</h3>
             <p className="sectionDesc">
-              로그인한 회사의 컨테이너가 자동 조회되고, 이름을 클릭하면 하단 상세가 바뀝니다.
+              컨테이너 목록과 각 상세를 한 카드 안에서 보도록 배치
             </p>
           </div>
 
@@ -495,122 +563,141 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="containerNameList">
-          {containers.map((container) => (
-            <button
-              key={container.id}
-              type="button"
-              className={`containerNameItem ${
-                selectedContainerId === container.id ? "is-selected" : ""
-              }`}
-              onClick={() => setSelectedContainerId(container.id)}
-            >
-              {container.name}
-            </button>
-          ))}
+        <div className="containerWorkspace">
+          <aside className="containerWorkspace__list">
+            <div className="containerWorkspace__titleRow">
+              <div>
+                <div className="sectionEyebrow">CONTAINER LIST</div>
+                <h4 className="containerWorkspace__title">컨테이너 목록</h4>
+              </div>
+            </div>
 
-          {containers.length === 0 ? (
-            <div className="emptyNameList">조회된 컨테이너가 없습니다.</div>
-          ) : null}
+            <div className="containerNameList">
+              {containers.map((container) => (
+                <button
+                  key={container.id}
+                  type="button"
+                  className={`containerNameItem ${
+                    selectedContainerId === container.id ? "is-selected" : ""
+                  }`}
+                  onClick={() => setSelectedContainerId(container.id)}
+                >
+                  <span className="containerNameItem__name">{container.name}</span>
+                  <span className={`statusPill ${statusMeta(container.status).className}`}>
+                    {statusMeta(container.status).label}
+                  </span>
+                </button>
+              ))}
+
+              {containers.length === 0 ? (
+                <div className="emptyNameList">조회된 컨테이너가 없습니다.</div>
+              ) : null}
+            </div>
+          </aside>
+
+          <div className="containerWorkspace__detail">
+            <div className="containerDetailHead">
+              <div>
+                <div className="sectionEyebrow">CONTAINER DETAIL</div>
+                <h3 className="sectionTitle">
+                  {selectedContainer?.name || "컨테이너"} 상세 리소스
+                </h3>
+                <p className="sectionDesc">
+                  선택한 컨테이너 기준 CPU, 메모리, 디스크, 네트워크 트래픽 현재 값을 표시합니다.
+                </p>
+              </div>
+
+              <div className="detailHeadRight">
+                <div className={`statusPill ${containerStatus.className}`}>
+                  {containerCpuDanger ? "CPU 위험" : containerStatus.label}
+                </div>
+                <RangeTabs value={range} onChange={setRange} />
+              </div>
+            </div>
+
+            <div className="detailSummaryRow">
+              <div className={`detailSummaryCard ${containerCpuDanger ? "is-danger" : ""}`}>
+                <div className="detailSummaryCard__label">평균 CPU</div>
+                <div className="detailSummaryCard__value">
+                  {(containerMetrics?.summary?.cpuAvg ?? avgOf(containerMetrics?.metrics?.cpu)).toFixed(1)}
+                  <span className="detailSummaryCard__unit">
+                    {containerMetrics?.units?.cpu || "%"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="detailSummaryCard">
+                <div className="detailSummaryCard__label">평균 메모리</div>
+                <div className="detailSummaryCard__value">
+                  {(containerMetrics?.summary?.memoryAvg ?? avgOf(containerMetrics?.metrics?.memory)).toFixed(2)}
+                  <span className="detailSummaryCard__unit">
+                    {containerMetrics?.units?.memory || "MB"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="detailSummaryCard">
+                <div className="detailSummaryCard__label">평균 디스크</div>
+                <div className="detailSummaryCard__value">
+                  {(containerMetrics?.summary?.diskAvg ?? avgOf(containerMetrics?.metrics?.disk)).toFixed(1)}
+                  <span className="detailSummaryCard__unit">
+                    {containerMetrics?.units?.disk || "%"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="detailSummaryCard">
+                <div className="detailSummaryCard__label">평균 네트워크 트래픽</div>
+                <div className="detailSummaryCard__value">
+                  {(containerMetrics?.summary?.networkAvg ?? avgOf(containerMetrics?.metrics?.network)).toFixed(2)}
+                  <span className="detailSummaryCard__unit">
+                    {containerMetrics?.units?.network || "MB/s"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {loadingMetrics ? (
+              <div className="unifiedSkeleton" style={{ height: 320 }} />
+            ) : (
+              <div className="chartGrid chartGrid--container">
+                <MiniChartCard
+                  title={`CPU 사용률 (${containerMetrics?.units?.cpu || "%"})`}
+                  value={lastOf(containerMetrics?.metrics?.cpu)}
+                  unit={containerMetrics?.units?.cpu || "%"}
+                  data={containerMetrics?.metrics?.cpu || []}
+                  footer={
+                    containerCpuDanger
+                      ? `경고 임계치 ${CPU_ALERT_THRESHOLD}% 이상`
+                      : "15초 간격 최근 스냅샷"
+                  }
+                  danger={containerCpuDanger}
+                />
+                <MiniChartCard
+                  title={`메모리 사용량 (${containerMetrics?.units?.memory || "MB"})`}
+                  value={lastOf(containerMetrics?.metrics?.memory)}
+                  unit={containerMetrics?.units?.memory || "MB"}
+                  data={containerMetrics?.metrics?.memory || []}
+                  footer="최근 메모리 사용량"
+                />
+                <MiniChartCard
+                  title={`디스크 사용량 (${containerMetrics?.units?.disk || "%"})`}
+                  value={lastOf(containerMetrics?.metrics?.disk)}
+                  unit={containerMetrics?.units?.disk || "%"}
+                  data={containerMetrics?.metrics?.disk || []}
+                  footer="15초 간격 최근 스냅샷"
+                />
+                <MiniChartCard
+                  title={`네트워크 트래픽 (${containerMetrics?.units?.network || "MB/s"})`}
+                  value={lastOf(containerMetrics?.metrics?.network)}
+                  unit={containerMetrics?.units?.network || "MB/s"}
+                  data={containerMetrics?.metrics?.network || []}
+                  footer={`마지막 수집: ${formatDateTime(containerMetrics?.lastUpdate)}`}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </section>
-
-      <section className="unifiedPanel">
-        <div className="unifiedPanel__head">
-          <div>
-            <div className="sectionEyebrow">CONTAINER DETAIL</div>
-            <h3 className="sectionTitle">
-              {selectedContainer?.name || "컨테이너"} 상세 리소스
-            </h3>
-            <p className="sectionDesc">
-              선택한 컨테이너 기준 CPU, 메모리, 디스크, 네트워크 트래픽 현재 값을 표시합니다.
-            </p>
-          </div>
-
-          <div className="detailHeadRight">
-            <div className={`statusPill ${containerStatus.className}`}>
-              {containerStatus.label}
-            </div>
-            <RangeTabs value={range} onChange={setRange} />
-          </div>
-        </div>
-
-        <div className="detailSummaryRow">
-          <div className="detailSummaryCard">
-            <div className="detailSummaryCard__label">평균 CPU</div>
-            <div className="detailSummaryCard__value">
-              {(containerMetrics?.summary?.cpuAvg ?? avgOf(containerMetrics?.metrics?.cpu)).toFixed(1)}
-              <span className="detailSummaryCard__unit">
-                {containerMetrics?.units?.cpu || "%"}
-              </span>
-            </div>
-          </div>
-
-          <div className="detailSummaryCard">
-            <div className="detailSummaryCard__label">평균 메모리</div>
-            <div className="detailSummaryCard__value">
-              {(containerMetrics?.summary?.memoryAvg ?? avgOf(containerMetrics?.metrics?.memory)).toFixed(2)}
-              <span className="detailSummaryCard__unit">
-                {containerMetrics?.units?.memory || "MB"}
-              </span>
-            </div>
-          </div>
-
-          <div className="detailSummaryCard">
-            <div className="detailSummaryCard__label">평균 디스크</div>
-            <div className="detailSummaryCard__value">
-              {(containerMetrics?.summary?.diskAvg ?? avgOf(containerMetrics?.metrics?.disk)).toFixed(1)}
-              <span className="detailSummaryCard__unit">
-                {containerMetrics?.units?.disk || "%"}
-              </span>
-            </div>
-          </div>
-
-          <div className="detailSummaryCard">
-            <div className="detailSummaryCard__label">평균 네트워크 트래픽</div>
-            <div className="detailSummaryCard__value">
-              {(containerMetrics?.summary?.networkAvg ?? avgOf(containerMetrics?.metrics?.network)).toFixed(2)}
-              <span className="detailSummaryCard__unit">
-                {containerMetrics?.units?.network || "MB/s"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {loadingMetrics ? (
-          <div className="unifiedSkeleton" style={{ height: 320 }} />
-        ) : (
-          <div className="chartGrid chartGrid--container">
-            <MiniChartCard
-              title={`CPU 사용률 (${containerMetrics?.units?.cpu || "%"})`}
-              value={lastOf(containerMetrics?.metrics?.cpu)}
-              unit={containerMetrics?.units?.cpu || "%"}
-              data={containerMetrics?.metrics?.cpu || []}
-              footer="15초 간격 최근 스냅샷"
-            />
-            <MiniChartCard
-              title={`메모리 사용량 (${containerMetrics?.units?.memory || "MB"})`}
-              value={lastOf(containerMetrics?.metrics?.memory)}
-              unit={containerMetrics?.units?.memory || "MB"}
-              data={containerMetrics?.metrics?.memory || []}
-              footer="최근 메모리 사용량"
-            />
-            <MiniChartCard
-              title={`디스크 사용량 (${containerMetrics?.units?.disk || "%"})`}
-              value={lastOf(containerMetrics?.metrics?.disk)}
-              unit={containerMetrics?.units?.disk || "%"}
-              data={containerMetrics?.metrics?.disk || []}
-              footer="15초 간격 최근 스냅샷"
-            />
-            <MiniChartCard
-              title={`네트워크 트래픽 (${containerMetrics?.units?.network || "MB/s"})`}
-              value={lastOf(containerMetrics?.metrics?.network)}
-              unit={containerMetrics?.units?.network || "MB/s"}
-              data={containerMetrics?.metrics?.network || []}
-              footer={`마지막 수집: ${formatDateTime(containerMetrics?.lastUpdate)}`}
-            />
-          </div>
-        )}
       </section>
     </div>
   );

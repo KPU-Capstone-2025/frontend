@@ -1,4 +1,4 @@
-:root{
+:root {
   --blue: #0b2bff;
   --bg: #f6f8fc;
   --panel: #ffffff;
@@ -11,342 +11,20 @@
 
   --radius: 16px;
   --radiusLg: 20px;
-
-  /* ✅ 추가: 본문(파란 영역) 폭/좌우 여백 제어 */
-  --contentMax: 1560px;   /* 1440~1680 사이 취향대로 */
-  --contentPadX: 24px;    /* 좌우 여백 */
 }
 
-.appShell{
+/* ===== App Shell ===== */
+.appShell {
   min-height: 100vh;
   background: var(--bg);
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
 }
 
-/* ====== SideNav ====== */
-.sideNav{
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  padding: 18px 16px;
-  background: linear-gradient(180deg, #0b1220 0%, #070c16 100%);
-  border-right: 1px solid rgba(255,255,255,0.06);
-}
-
-.brand{
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 10px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  margin-bottom: 14px;
-}
-
-/* 로고 박스: 커지고, 안 잘리게 */
-.brand__logo{
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.14);
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-
-/* 핵심: contain으로 "안 잘리게" + 패딩으로 여백 */
-.brand__logoImg{
-  width: 100%;
-  height: 100%;
-  object-fit: contain;      /* cover ❌ -> contain ✅ */
-  padding: 6px;             /* 안쪽 여백 (로고가 숨 쉬게) */
-  filter: brightness(1.08) contrast(1.12);
-}
-
-
-.brand__logoImg{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;                        /* 네모에 꽉 차게 */
-  transform: scale(1.2);                   /* 살짝 꽉 차는 느낌 (원하면 1.0) */
-}
-
-
-.brand__txt{
-  display: grid;
-  line-height: 1.1;
-}
-.brand__title{
-  color: #fff;
-  font-weight: 900;
-  font-size: 14px;
-  letter-spacing: -0.02em;
-}
-.brand__sub{
-  color: rgba(255,255,255,0.6);
-  font-size: 12px;
-}
-
-.navGroup{
-  display: grid;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.navItem{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 12px;
-  border-radius: 14px;
-  color: rgba(255,255,255,0.78);
-  text-decoration: none;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.03);
-  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-}
-
-.navItem:hover{
-  transform: translateY(-1px);
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.10);
-}
-
-.navItem__icon{
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: rgba(11,43,255,0.14);
-  border: 1px solid rgba(11,43,255,0.22);
-  color: #fff;
-  flex: 0 0 auto;
-}
-
-.navItem__label{
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  font-size: 13.5px;
-}
-
-.navItem__badge{
-  margin-left: auto;
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  color: rgba(255,255,255,0.75);
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.06);
-}
-
-.navItem.active{
-  background: rgba(11,43,255,0.20);
-  border-color: rgba(11,43,255,0.35);
-  color: #fff;
-}
-
-.navFooter{
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 14px;
-  color: rgba(255,255,255,0.55);
-  font-size: 12px;
-  display: flex;
-  justify-content: space-between;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-/* ====== Main ====== */
-.appMain{
-  display: grid;
-  grid-template-rows: 64px 1fr;
+.appShell__nav {
   min-width: 0;
 }
 
-/* TopBar */
-.topBar{
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 22px;
-  background: rgba(255,255,255,0.72);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--line);
-}
-
-.topBar__left{
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.burger{
-  display: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: #fff;
-  box-shadow: var(--shadowSoft);
-  align-items: center;
-  justify-content: center;
-}
-
-.burger:active{
-  transform: translateY(1px);
-}
-
-.pageTitle{
-  display: grid;
-  line-height: 1.1;
-}
-.pageTitle__h{
-  margin: 0;
-  font-size: 14px;
-  font-weight: 900;
-  color: var(--text);
-  letter-spacing: -0.02em;
-}
-.pageTitle__p{
-  margin: 0;
-  font-size: 12px;
-  color: var(--muted);
-  letter-spacing: -0.01em;
-}
-
-.topBar__right{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.pill{
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: #fff;
-  box-shadow: var(--shadowSoft);
-  font-weight: 800;
-  font-size: 12px;
-  color: var(--text);
-}
-
-.pillDot{
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #16a34a;
-}
-
-.pillSelect{
-  border: none;
-  outline: none;
-  background: transparent;
-  font-weight: 800;
-  font-size: 12px;
-  color: var(--text);
-}
-
-.userChip{
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  height: 38px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: #fff;
-  box-shadow: var(--shadowSoft);
-}
-
-.userAvatar{
-  width: 26px;
-  height: 26px;
-  border-radius: 10px;
-  background: rgba(11,43,255,0.12);
-  border: 1px solid rgba(11,43,255,0.18);
-  display: grid;
-  place-items: center;
-  font-weight: 900;
-  color: var(--blue);
-}
-
-.userMeta{
-  display: grid;
-  line-height: 1.1;
-}
-.userName{
-  font-size: 12px;
-  font-weight: 900;
-  color: var(--text);
-}
-.userRole{
-  font-size: 11px;
-  color: var(--muted);
-}
-
-/* ======================================================
-   Content (✅ 여기만 핵심 수정)
-   - 파란 영역(본문)만 중앙정렬 + 폭 확장
-   - 왼쪽 붙는 느낌 제거, 오른쪽 빈 공간 감소
-====================================================== */
-.appContent{
-  width: 100%;
-  max-width: var(--contentMax);
-  margin: 0 auto;
-
-  padding: 22px var(--contentPadX);
-
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-/* ====== Responsive ====== */
-@media (max-width: 980px){
-  .appShell{
-    grid-template-columns: 1fr;
-  }
-
-  .sideNav{
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 290px;
-    transform: translateX(-110%);
-    transition: transform .2s ease;
-    z-index: 50;
-  }
-
-  .sideNav.open{
-    transform: translateX(0);
-  }
-
-  .burger{
-    display: inline-flex;
-  }
-
-  .navOverlay{
-    position: fixed;
-    inset: 0;
-    background: rgba(2,6,23,0.45);
-    z-index: 40;
-  }
-
-  /* ✅ 모바일에서 좌우 여백만 줄이기 */
-  :root{
-    --contentPadX: 16px;
-  }
-}
 .appShell__main {
   min-width: 0;
   display: flex;
@@ -354,63 +32,298 @@
 }
 
 .appShell__content {
-  padding: 18px 24px 24px;
   min-width: 0;
+  padding: 24px 28px 28px;
 }
 
-.userChip {
-  display: inline-flex;
+/* ===== SideNav ===== */
+.sideNav {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 18px 16px;
+  background: linear-gradient(180deg, #0b1220 0%, #070c16 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  box-sizing: border-box;
+}
+
+.brand {
+  display: flex;
   align-items: center;
-  gap: 10px;
-  height: 42px;
-  padding: 0 12px;
-  border-radius: 16px;
-  background: #fff;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadowSoft);
+  gap: 12px;
+  padding: 10px 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 14px;
 }
 
-.userAvatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 11px;
+.brand__logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   display: grid;
   place-items: center;
-  background: rgba(11, 43, 255, 0.12);
-  color: var(--blue);
-  font-weight: 900;
-  font-size: 13px;
+  overflow: hidden;
+  flex: 0 0 auto;
 }
 
-.userMeta {
+.brand__logoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+  filter: brightness(1.08) contrast(1.12);
+  box-sizing: border-box;
+}
+
+.brand__txt {
   display: grid;
-  line-height: 1.05;
+  line-height: 1.1;
 }
 
-.userName {
+.brand__title {
+  color: #fff;
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: -0.02em;
+}
+
+.brand__sub {
+  color: rgba(255, 255, 255, 0.6);
   font-size: 12px;
+}
+
+.navGroup {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.78);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.navItem:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.navItem__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(11, 43, 255, 0.14);
+  border: 1px solid rgba(11, 43, 255, 0.22);
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+.navItem__label {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-size: 13.5px;
+}
+
+.navItem__badge {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.navItem.active {
+  background: rgba(11, 43, 255, 0.2);
+  border-color: rgba(11, 43, 255, 0.35);
+  color: #fff;
+}
+
+.navFooter {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 14px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.navOverlay {
+  display: none;
+}
+
+/* ===== TopBar ===== */
+.topBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 28px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  box-sizing: border-box;
+}
+
+.topBar__left {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.pageTitle {
+  display: grid;
+  gap: 4px;
+  line-height: 1.1;
+}
+
+.pageTitle__h {
+  margin: 0;
+  font-size: 19px;
   font-weight: 900;
   color: var(--text);
+  letter-spacing: -0.02em;
 }
 
-.userRole {
-  font-size: 11px;
-  font-weight: 700;
+.pageTitle__p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: -0.01em;
+}
+
+.topBar__right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.topBarCompany {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadowSoft);
+  box-sizing: border-box;
+}
+
+.topBarCompany__label {
+  font-size: 12px;
+  font-weight: 800;
   color: var(--muted);
 }
 
-.logoutBtn {
-  height: 38px;
-  padding: 0 12px;
+.topBarCompany__name {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.topBarStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
   border-radius: 999px;
+  background: #ffffff;
   border: 1px solid var(--line);
-  background: #fff;
+  box-shadow: var(--shadowSoft);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.topBarStatus__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
+  flex: 0 0 auto;
+}
+
+.logoutBtn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #ffffff;
   box-shadow: var(--shadowSoft);
   font-size: 12px;
   font-weight: 900;
   color: var(--text);
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .logoutBtn:hover {
   transform: translateY(-1px);
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1200px) {
+  .topBar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topBar__right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 980px) {
+  .appShell {
+    grid-template-columns: 1fr;
+  }
+
+  .appShell__nav {
+    display: none;
+  }
+
+  .appShell__content {
+    padding: 20px 16px 24px;
+  }
+
+  .topBar {
+    padding: 14px 16px;
+  }
 }
