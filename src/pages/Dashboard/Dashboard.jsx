@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./dashboard.css";
 
 import {
@@ -15,10 +15,57 @@ const CPU_ALERT_THRESHOLD = 85;
 const CHART_HEIGHT = 180;
 const CHART_WIDTH = 520;
 
-const dashboardCache = new Map();
+const dashboardRuntimeStore = new Map();
 
-function getCachedDashboardState(companyId) {
-  return dashboardCache.get(companyId) || null;
+function createInitialSnapshot() {
+  return {
+    loading: true,
+    refreshingContainers: false,
+    polling: false,
+    error: "",
+    hostData: null,
+    containers: [],
+    selectedContainerId: "",
+    containerMetricsById: {},
+    loadingMetricsById: {},
+  };
+}
+
+function getRuntime(companyId) {
+  if (!dashboardRuntimeStore.has(companyId)) {
+    dashboardRuntimeStore.set(companyId, {
+      snapshot: createInitialSnapshot(),
+      listeners: new Set(),
+      started: false,
+      hostTimer: null,
+      containerTimer: null,
+    });
+  }
+
+  return dashboardRuntimeStore.get(companyId);
+}
+
+function emitRuntime(companyId) {
+  const runtime = getRuntime(companyId);
+  runtime.listeners.forEach((listener) => listener(runtime.snapshot));
+}
+
+function patchRuntimeSnapshot(companyId, updater) {
+  const runtime = getRuntime(companyId);
+  const next =
+    typeof updater === "function" ? updater(runtime.snapshot) : updater;
+  runtime.snapshot = next;
+  emitRuntime(companyId);
+}
+
+function subscribeRuntime(companyId, listener) {
+  const runtime = getRuntime(companyId);
+  runtime.listeners.add(listener);
+  listener(runtime.snapshot);
+
+  return () => {
+    runtime.listeners.delete(listener);
+  };
 }
 
 function lastOf(series = []) {
@@ -70,21 +117,35 @@ function statusMeta(status) {
   return { label: "오류", className: "is-bad" };
 }
 
-function getNoiseGate(unit) {
-  if (unit === "%") return 0.25;
-  if (unit === "GB") return 0.03;
-  if (unit === "MB") return 3;
-  if (unit === "KB/s") return 1.5;
-  if (unit === "B/s") return 120;
-  return 0.1;
+function getNoiseGate(unit, sensitivity = "normal") {
+  const factor =
+    sensitivity === "high" ? 0.18 : sensitivity === "medium" ? 0.45 : 1;
+
+  if (unit === "%") return 0.25 * factor;
+  if (unit === "GB") return 0.03 * factor;
+  if (unit === "MB") return 3 * factor;
+  if (unit === "KB/s") return 1.5 * factor;
+  if (unit === "B/s") return 120 * factor;
+  return 0.1 * factor;
 }
 
-function smoothSeries(series = [], unit = "%") {
+function smoothSeries(series = [], unit = "%", options = {}) {
   if (!Array.isArray(series) || series.length === 0) return [];
 
-  const alpha = unit === "%" ? 0.42 : unit === "GB" || unit === "MB" ? 0.35 : 0.28;
-  const gate = getNoiseGate(unit);
+  const { sensitivity = "normal" } = options;
 
+  const alpha =
+    sensitivity === "high"
+      ? unit === "%"
+        ? 0.78
+        : 0.68
+      : unit === "%"
+      ? 0.42
+      : unit === "GB" || unit === "MB"
+      ? 0.35
+      : 0.28;
+
+  const gate = getNoiseGate(unit, sensitivity);
   let prev = Number(series[0]?.v || 0);
 
   return series.map((point, index) => {
@@ -97,18 +158,33 @@ function smoothSeries(series = [], unit = "%") {
 
     const delta = current - prev;
 
-    if (Math.abs(delta) < gate) {
+    if (Math.abs(delta) < gate && sensitivity !== "high") {
       return { ...point, sv: prev };
     }
 
-    const next = prev + delta * alpha;
+    let next = prev + delta * alpha;
+
+    if (
+      sensitivity === "high" &&
+      current !== prev &&
+      Math.abs(next - prev) < 0.02
+    ) {
+      next = prev + (delta > 0 ? 0.02 : -0.02);
+    }
+
     prev = next;
 
-    return { ...point, sv: Number(next.toFixed(2)) };
+    return {
+      ...point,
+      sv: Number(next.toFixed(3)),
+    };
   });
 }
 
-function createChartGeometry(series = [], { width = CHART_WIDTH, height = CHART_HEIGHT } = {}) {
+function createChartGeometry(
+  series = [],
+  { width = CHART_WIDTH, height = CHART_HEIGHT } = {}
+) {
   if (!series.length) {
     return {
       linePath: "",
@@ -125,6 +201,7 @@ function createChartGeometry(series = [], { width = CHART_WIDTH, height = CHART_
   const rawMin = Math.min(...values);
   const rawMax = Math.max(...values);
   const span = rawMax - rawMin;
+
   const topPad = span === 0 ? Math.max(rawMax * 0.12, 1) : span * 0.16;
   const bottomPad = span === 0 ? Math.max(rawMin * 0.08, 1) : span * 0.12;
 
@@ -204,11 +281,10 @@ function calcTrend(series = []) {
 
   const last = Number(series[series.length - 1]?.v || 0);
   const prev = Number(series[series.length - 2]?.v ?? last);
-
   const diff = last - prev;
 
   if (Math.abs(diff) < 0.01) {
-    return { direction: "flat", text: "직전 수집과 통일" };
+    return { direction: "flat", text: "직전 수집과 동일" };
   }
 
   if (diff > 0) {
@@ -224,6 +300,155 @@ function calcTrend(series = []) {
   };
 }
 
+async function fetchHostAndContainers(companyId) {
+  const [hostRes, containersRes] = await Promise.all([
+    getHostOverview(companyId),
+    getContainers(companyId),
+  ]);
+
+  const nextContainers = Array.isArray(containersRes) ? containersRes : [];
+
+  patchRuntimeSnapshot(companyId, (prev) => {
+    const mergedHostData = prev.hostData
+      ? mergeHostSnapshot(prev.hostData, hostRes)
+      : hostRes;
+
+    const hasPrevSelected = nextContainers.some(
+      (item) => item.id === prev.selectedContainerId
+    );
+
+    return {
+      ...prev,
+      loading: false,
+      error: "",
+      hostData: mergedHostData,
+      containers: nextContainers,
+      selectedContainerId:
+        hasPrevSelected ? prev.selectedContainerId : nextContainers[0]?.id || "",
+    };
+  });
+}
+
+async function fetchContainerMetricsSnapshot(
+  companyId,
+  containerId,
+  { showLoading = false } = {}
+) {
+  if (!companyId || !containerId) return;
+
+  if (showLoading) {
+    patchRuntimeSnapshot(companyId, (prev) => ({
+      ...prev,
+      loadingMetricsById: {
+        ...prev.loadingMetricsById,
+        [containerId]: true,
+      },
+    }));
+  }
+
+  try {
+    const res = await getContainerMetrics(companyId, containerId, "live");
+
+    patchRuntimeSnapshot(companyId, (prev) => {
+      const prevMetrics = prev.containerMetricsById[containerId];
+
+      return {
+        ...prev,
+        error: "",
+        containerMetricsById: {
+          ...prev.containerMetricsById,
+          [containerId]: prevMetrics
+            ? mergeContainerMetricsSnapshot(prevMetrics, res)
+            : res,
+        },
+        loadingMetricsById: {
+          ...prev.loadingMetricsById,
+          [containerId]: false,
+        },
+      };
+    });
+  } catch (e) {
+    patchRuntimeSnapshot(companyId, (prev) => ({
+      ...prev,
+      error: e?.message || "컨테이너 상세 리소스를 불러오지 못했습니다.",
+      loadingMetricsById: {
+        ...prev.loadingMetricsById,
+        [containerId]: false,
+      },
+    }));
+  }
+}
+
+function ensureHostPolling(companyId) {
+  const runtime = getRuntime(companyId);
+  if (runtime.hostTimer) return;
+
+  runtime.hostTimer = setInterval(async () => {
+    patchRuntimeSnapshot(companyId, (prev) => ({ ...prev, polling: true }));
+
+    try {
+      await fetchHostAndContainers(companyId);
+    } catch (e) {
+      patchRuntimeSnapshot(companyId, (prev) => ({
+        ...prev,
+        error: e?.message || "자동 갱신 중 오류가 발생했습니다.",
+      }));
+    } finally {
+      patchRuntimeSnapshot(companyId, (prev) => ({ ...prev, polling: false }));
+    }
+  }, POLLING_INTERVAL);
+}
+
+function ensureContainerPolling(companyId) {
+  const runtime = getRuntime(companyId);
+  if (runtime.containerTimer) return;
+
+  runtime.containerTimer = setInterval(async () => {
+    const { selectedContainerId } = runtime.snapshot;
+    if (!selectedContainerId) return;
+
+    await fetchContainerMetricsSnapshot(companyId, selectedContainerId, {
+      showLoading: false,
+    });
+  }, POLLING_INTERVAL);
+}
+
+async function ensureDashboardStarted(companyId) {
+  const runtime = getRuntime(companyId);
+  if (runtime.started) return;
+
+  runtime.started = true;
+
+  try {
+    patchRuntimeSnapshot(companyId, (prev) => ({
+      ...prev,
+      loading: !prev.hostData,
+      error: "",
+    }));
+
+    await fetchHostAndContainers(companyId);
+
+    const selectedId = getRuntime(companyId).snapshot.selectedContainerId;
+    if (selectedId) {
+      const hasCached =
+        !!getRuntime(companyId).snapshot.containerMetricsById[selectedId];
+
+      await fetchContainerMetricsSnapshot(companyId, selectedId, {
+        showLoading: !hasCached,
+      });
+    }
+  } catch (e) {
+    patchRuntimeSnapshot(companyId, (prev) => ({
+      ...prev,
+      loading: false,
+      error: e?.message || "대시보드 데이터를 불러오지 못했습니다.",
+    }));
+  }
+
+  ensureHostPolling(companyId);
+  ensureContainerPolling(companyId);
+}
+
 function MetricCard({ title, value, sub, danger = false }) {
   return (
     <div className={`unifiedMetricCard ${danger ? "is-danger" : ""}`}>
@@ -237,7 +462,8 @@ function MetricCard({ title, value, sub, danger = false }) {
 function TrendChip({ trend }) {
   return (
     <span className={`trendChip is-${trend.direction}`}>
-      {trend.direction === "up" ? "▲" : trend.direction === "down" ? "▼" : "•"} {trend.text}
+      {trend.direction === "up" ? "▲" : trend.direction === "down" ? "▼" : "•"}{" "}
+      {trend.text}
     </span>
   );
 }
@@ -249,12 +475,22 @@ function LiveChartCard({
   rawSeries,
   footer,
   danger = false,
+  sensitivity = "normal",
 }) {
-  const smoothed = useMemo(() => smoothSeries(rawSeries, unit), [rawSeries, unit]);
+  const smoothed = useMemo(
+    () => smoothSeries(rawSeries, unit, { sensitivity }),
+    [rawSeries, unit, sensitivity]
+  );
+
   const geometry = useMemo(
-    () => createChartGeometry(smoothed, { width: CHART_WIDTH, height: CHART_HEIGHT }),
+    () =>
+      createChartGeometry(smoothed, {
+        width: CHART_WIDTH,
+        height: CHART_HEIGHT,
+      }),
     [smoothed]
   );
+
   const trend = useMemo(() => calcTrend(rawSeries), [rawSeries]);
 
   const displayValue =
@@ -297,7 +533,13 @@ function LiveChartCard({
             </linearGradient>
           </defs>
 
-          <line x1="14" y1="16" x2={CHART_WIDTH - 14} y2="16" className="chartGridLine" />
+          <line
+            x1="14"
+            y1="16"
+            x2={CHART_WIDTH - 14}
+            y2="16"
+            className="chartGridLine"
+          />
           <line
             x1="14"
             y1={CHART_HEIGHT / 2}
@@ -365,48 +607,38 @@ function RefreshButton({ onClick, loading }) {
 export default function Dashboard() {
   const session = getStoredSession();
   const companyId = session?.id || "";
-  const cached = getCachedDashboardState(companyId);
-
-  const [loading, setLoading] = useState(!cached);
-  const [loadingMetrics, setLoadingMetrics] = useState(!cached?.containerMetrics);
-  const [refreshingContainers, setRefreshingContainers] = useState(false);
-  const [polling, setPolling] = useState(false);
-  const [error, setError] = useState(cached?.error || "");
-
-  const [hostData, setHostData] = useState(cached?.hostData || null);
-  const [containers, setContainers] = useState(cached?.containers || []);
-  const [selectedContainerId, setSelectedContainerId] = useState(
-    cached?.selectedContainerId || ""
+  const [view, setView] = useState(() =>
+    companyId ? getRuntime(companyId).snapshot : createInitialSnapshot()
   );
-  const [containerMetrics, setContainerMetrics] = useState(
-    cached?.containerMetrics || null
-  );
-
-  const hostPollingRef = useRef(null);
-  const containerPollingRef = useRef(null);
 
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId) {
+      setView(createInitialSnapshot());
+      return;
+    }
 
-    dashboardCache.set(companyId, {
-      loading,
-      loadingMetrics,
-      error,
-      hostData,
-      containers,
-      selectedContainerId,
-      containerMetrics,
-    });
-  }, [
-    companyId,
+    const unsubscribe = subscribeRuntime(companyId, setView);
+    ensureDashboardStarted(companyId);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [companyId]);
+
+  const {
     loading,
-    loadingMetrics,
+    refreshingContainers,
+    polling,
     error,
     hostData,
     containers,
     selectedContainerId,
-    containerMetrics,
-  ]);
+    containerMetricsById,
+    loadingMetricsById,
+  } = view;
+
+  const containerMetrics = containerMetricsById[selectedContainerId] || null;
+  const loadingMetrics = !!loadingMetricsById[selectedContainerId];
 
   const selectedContainer = useMemo(() => {
     return containers.find((item) => item.id === selectedContainerId) || null;
@@ -415,198 +647,55 @@ export default function Dashboard() {
   async function loadContainersOnly() {
     if (!companyId) return;
 
-    try {
-      setRefreshingContainers(true);
-      setError("");
+    patchRuntimeSnapshot(companyId, (prev) => ({
+      ...prev,
+      refreshingContainers: true,
+      error: "",
+    }));
 
+    try {
       const containersRes = await getContainers(companyId);
       const nextContainers = Array.isArray(containersRes) ? containersRes : [];
 
-      setContainers(nextContainers);
-      setSelectedContainerId((prev) => {
-        const hasPrev = nextContainers.some((item) => item.id === prev);
-        return hasPrev ? prev : nextContainers[0]?.id || "";
+      patchRuntimeSnapshot(companyId, (prev) => {
+        const hasPrev = nextContainers.some(
+          (item) => item.id === prev.selectedContainerId
+        );
+
+        return {
+          ...prev,
+          containers: nextContainers,
+          refreshingContainers: false,
+          selectedContainerId:
+            hasPrev ? prev.selectedContainerId : nextContainers[0]?.id || "",
+        };
       });
     } catch (e) {
-      setError(e?.message || "컨테이너 목록을 새로고침하지 못했습니다.");
-    } finally {
-      setRefreshingContainers(false);
+      patchRuntimeSnapshot(companyId, (prev) => ({
+        ...prev,
+        refreshingContainers: false,
+        error: e?.message || "컨테이너 목록을 새로고침하지 못했습니다.",
+      }));
     }
   }
 
-  useEffect(() => {
-    let cancelled = false;
+  async function handleSelectContainer(containerId) {
+    if (!companyId || !containerId) return;
 
-    async function loadPage() {
-      if (!companyId) {
-        setLoading(false);
-        setError("로그인된 회사 정보가 없습니다.");
-        return;
-      }
+    patchRuntimeSnapshot(companyId, (prev) => ({
+      ...prev,
+      selectedContainerId: containerId,
+    }));
 
-      if (cached?.hostData && cached?.containers?.length) {
-        setLoading(false);
-        return;
-      }
+    const hasCached =
+      !!getRuntime(companyId).snapshot.containerMetricsById[containerId];
 
-      try {
-        setLoading(true);
-        setError("");
+    await fetchContainerMetricsSnapshot(companyId, containerId, {
+      showLoading: !hasCached,
+    });
 
-        const [hostRes, containersRes] = await Promise.all([
-          getHostOverview(companyId),
-          getContainers(companyId),
-        ]);
-
-        if (cancelled) return;
-
-        const nextContainers = Array.isArray(containersRes) ? containersRes : [];
-
-        setHostData(hostRes);
-        setContainers(nextContainers);
-        setSelectedContainerId((prev) => {
-          if (prev && nextContainers.some((item) => item.id === prev)) {
-            return prev;
-          }
-          return nextContainers[0]?.id || "";
-        });
-      } catch (e) {
-        if (cancelled) return;
-        setError(e?.message || "대시보드 데이터를 불러오지 못했습니다.");
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadPage();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [cached, companyId]);
-
-  useEffect(() => {
-    if (!companyId || loading) return;
-
-    let cancelled = false;
-
-    async function pollHostAndContainers() {
-      try {
-        setPolling(true);
-
-        const [nextHostData, nextContainers] = await Promise.all([
-          getHostOverview(companyId),
-          getContainers(companyId),
-        ]);
-
-        if (cancelled) return;
-
-        setHostData((prev) => mergeHostSnapshot(prev, nextHostData));
-
-        const safeContainers = Array.isArray(nextContainers) ? nextContainers : [];
-        setContainers(safeContainers);
-
-        setSelectedContainerId((prev) => {
-          const hasPrev = safeContainers.some((item) => item.id === prev);
-          return hasPrev ? prev : safeContainers[0]?.id || "";
-        });
-      } catch (e) {
-        if (!cancelled) {
-          setError(e?.message || "자동 갱신 중 오류가 발생했습니다.");
-        }
-      } finally {
-        if (!cancelled) {
-          setPolling(false);
-        }
-      }
-    }
-
-    hostPollingRef.current = setInterval(pollHostAndContainers, POLLING_INTERVAL);
-
-    return () => {
-      cancelled = true;
-      if (hostPollingRef.current) {
-        clearInterval(hostPollingRef.current);
-        hostPollingRef.current = null;
-      }
-    };
-  }, [companyId, loading]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadContainerMetrics(showLoading = true) {
-      if (!companyId || !selectedContainerId) {
-        setContainerMetrics(null);
-        setLoadingMetrics(false);
-        return;
-      }
-
-      try {
-        if (showLoading) {
-          setLoadingMetrics(true);
-        }
-
-        const res = await getContainerMetrics(companyId, selectedContainerId, "live");
-
-        if (cancelled) return;
-
-        setContainerMetrics((prev) => {
-          if (showLoading || !prev) {
-            return res;
-          }
-          return mergeContainerMetricsSnapshot(prev, res);
-        });
-      } catch (e) {
-        if (!cancelled) {
-          setContainerMetrics(null);
-          setError(e?.message || "컨테이너 상세 리소스를 불러오지 못했습니다.");
-        }
-      } finally {
-        if (!cancelled && showLoading) {
-          setLoadingMetrics(false);
-        }
-      }
-    }
-
-    loadContainerMetrics(true);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [companyId, selectedContainerId]);
-
-  useEffect(() => {
-    if (!companyId || !selectedContainerId) return;
-
-    let cancelled = false;
-
-    async function pollContainerMetrics() {
-      try {
-        const res = await getContainerMetrics(companyId, selectedContainerId, "live");
-
-        if (cancelled) return;
-
-        setContainerMetrics((prev) => mergeContainerMetricsSnapshot(prev, res));
-      } catch (e) {
-        if (!cancelled) {
-          setError(e?.message || "컨테이너 리소스 자동 갱신 중 오류가 발생했습니다.");
-        }
-      }
-    }
-
-    containerPollingRef.current = setInterval(pollContainerMetrics, POLLING_INTERVAL);
-
-    return () => {
-      cancelled = true;
-      if (containerPollingRef.current) {
-        clearInterval(containerPollingRef.current);
-        containerPollingRef.current = null;
-      }
-    };
-  }, [companyId, selectedContainerId]);
+    ensureContainerPolling(companyId);
+  }
 
   const host = hostData?.host;
   const hostMetrics = hostData?.hostMetrics || {};
@@ -614,7 +703,9 @@ export default function Dashboard() {
   const hostCpuDanger = isCpuDanger(host?.cpuUsage);
   const containerCpuDanger = isCpuDanger(lastOf(containerMetrics?.metrics?.cpu));
 
-  const hostStatus = statusMeta(host?.status || (hostCpuDanger ? "bad" : "healthy"));
+  const hostStatus = statusMeta(
+    host?.status || (hostCpuDanger ? "bad" : "healthy")
+  );
   const containerStatus = statusMeta(
     selectedContainer?.status ||
       containerMetrics?.status ||
@@ -657,18 +748,20 @@ export default function Dashboard() {
 
       {error ? <div className="unifiedError">{error}</div> : null}
 
-      <section className={`unifiedPanel ${hostCpuDanger ? "unifiedPanel--danger" : ""}`}>
+      <section
+        className={`unifiedPanel ${hostCpuDanger ? "unifiedPanel--danger" : ""}`}
+      >
         <div className="unifiedPanel__head">
           <div>
             <div className="sectionEyebrow">HOST SERVER</div>
             <h3 className="sectionTitle">호스트 서버 전체 리소스</h3>
-            <p className="sectionDesc">
-              전체 서버의 현재 리소스 사용 상태입니다.
-            </p>
+            <p className="sectionDesc">전체 서버의 현재 리소스 사용 상태입니다.</p>
           </div>
 
           <div className="detailHeadRight">
-            <div className={`statusPill ${hostStatus.className}`}>{hostStatus.label}</div>
+            <div className={`statusPill ${hostStatus.className}`}>
+              {hostStatus.label}
+            </div>
             <div className="tableSummary">
               {hostCpuDanger ? "CPU 임계치 초과" : "정상 수집 중"}
             </div>
@@ -712,9 +805,10 @@ export default function Dashboard() {
             footer={
               hostCpuDanger
                 ? `경고 임계치 ${CPU_ALERT_THRESHOLD}% 이상`
-                : "5초 간격 실시간 포인트 누적"
+                : "실시간 변화 추이"
             }
             danger={hostCpuDanger}
+            sensitivity="normal"
           />
 
           <LiveChartCard
@@ -722,7 +816,8 @@ export default function Dashboard() {
             currentValue={lastOf(hostMetrics.memory)}
             unit={host?.memoryUnit || "MB"}
             rawSeries={hostMetrics.memory}
-            footer="실제 수집값 기반 메모리 추이"
+            footer="실시간 변화 추이"
+            sensitivity="normal"
           />
 
           <LiveChartCard
@@ -730,7 +825,8 @@ export default function Dashboard() {
             currentValue={lastOf(hostMetrics.disk)}
             unit={host?.diskUnit || "%"}
             rawSeries={hostMetrics.disk}
-            footer="실제 수집값 기반 디스크 추이"
+            footer="실시간 변화 추이"
+            sensitivity="normal"
           />
 
           <LiveChartCard
@@ -739,11 +835,14 @@ export default function Dashboard() {
             unit={host?.networkUnit || "MB/s"}
             rawSeries={hostMetrics.network}
             footer={`마지막 수집: ${formatDateTime(host?.lastUpdate)}`}
+            sensitivity="normal"
           />
         </div>
       </section>
 
-      <section className={`unifiedPanel ${containerCpuDanger ? "unifiedPanel--danger" : ""}`}>
+      <section
+        className={`unifiedPanel ${containerCpuDanger ? "unifiedPanel--danger" : ""}`}
+      >
         <div className="unifiedPanel__head">
           <div>
             <div className="sectionEyebrow">CONTAINERS</div>
@@ -757,7 +856,10 @@ export default function Dashboard() {
             <div className="tableSummary">
               총 <strong>{containers.length}</strong>개
             </div>
-            <RefreshButton onClick={loadContainersOnly} loading={refreshingContainers} />
+            <RefreshButton
+              onClick={loadContainersOnly}
+              loading={refreshingContainers}
+            />
           </div>
         </div>
 
@@ -778,10 +880,14 @@ export default function Dashboard() {
                   className={`containerNameItem ${
                     selectedContainerId === container.id ? "is-selected" : ""
                   }`}
-                  onClick={() => setSelectedContainerId(container.id)}
+                  onClick={() => handleSelectContainer(container.id)}
                 >
-                  <span className="containerNameItem__name">{container.name}</span>
-                  <span className={`statusPill ${statusMeta(container.status).className}`}>
+                  <span className="containerNameItem__name">
+                    {container.name}
+                  </span>
+                  <span
+                    className={`statusPill ${statusMeta(container.status).className}`}
+                  >
                     {statusMeta(container.status).label}
                   </span>
                 </button>
@@ -801,7 +907,7 @@ export default function Dashboard() {
                   {selectedContainer?.name || "컨테이너"} 상세 리소스
                 </h3>
                 <p className="sectionDesc">
-                  선택한 컨테이너의 최신 실측값과 실시간 추이를 표시합니다.
+                  선택한 컨테이너의 현재 상태와 변화 추이를 확인할 수 있습니다.
                 </p>
               </div>
 
@@ -814,10 +920,17 @@ export default function Dashboard() {
             </div>
 
             <div className="detailSummaryRow">
-              <div className={`detailSummaryCard ${containerCpuDanger ? "is-danger" : ""}`}>
+              <div
+                className={`detailSummaryCard ${
+                  containerCpuDanger ? "is-danger" : ""
+                }`}
+              >
                 <div className="detailSummaryCard__label">평균 CPU</div>
                 <div className="detailSummaryCard__value">
-                  {(containerMetrics?.summary?.cpuAvg ?? avgOf(containerMetrics?.metrics?.cpu)).toFixed(1)}
+                  {(
+                    containerMetrics?.summary?.cpuAvg ??
+                    avgOf(containerMetrics?.metrics?.cpu)
+                  ).toFixed(1)}
                   <span className="detailSummaryCard__unit">
                     {containerMetrics?.units?.cpu || "%"}
                   </span>
@@ -827,7 +940,10 @@ export default function Dashboard() {
               <div className="detailSummaryCard">
                 <div className="detailSummaryCard__label">평균 메모리</div>
                 <div className="detailSummaryCard__value">
-                  {(containerMetrics?.summary?.memoryAvg ?? avgOf(containerMetrics?.metrics?.memory)).toFixed(2)}
+                  {(
+                    containerMetrics?.summary?.memoryAvg ??
+                    avgOf(containerMetrics?.metrics?.memory)
+                  ).toFixed(2)}
                   <span className="detailSummaryCard__unit">
                     {containerMetrics?.units?.memory || "MB"}
                   </span>
@@ -837,7 +953,10 @@ export default function Dashboard() {
               <div className="detailSummaryCard">
                 <div className="detailSummaryCard__label">평균 디스크</div>
                 <div className="detailSummaryCard__value">
-                  {(containerMetrics?.summary?.diskAvg ?? avgOf(containerMetrics?.metrics?.disk)).toFixed(1)}
+                  {(
+                    containerMetrics?.summary?.diskAvg ??
+                    avgOf(containerMetrics?.metrics?.disk)
+                  ).toFixed(1)}
                   <span className="detailSummaryCard__unit">
                     {containerMetrics?.units?.disk || "%"}
                   </span>
@@ -845,9 +964,14 @@ export default function Dashboard() {
               </div>
 
               <div className="detailSummaryCard">
-                <div className="detailSummaryCard__label">평균 네트워크 트래픽</div>
+                <div className="detailSummaryCard__label">
+                  평균 네트워크 트래픽
+                </div>
                 <div className="detailSummaryCard__value">
-                  {(containerMetrics?.summary?.networkAvg ?? avgOf(containerMetrics?.metrics?.network)).toFixed(2)}
+                  {(
+                    containerMetrics?.summary?.networkAvg ??
+                    avgOf(containerMetrics?.metrics?.network)
+                  ).toFixed(2)}
                   <span className="detailSummaryCard__unit">
                     {containerMetrics?.units?.network || "MB/s"}
                   </span>
@@ -867,9 +991,10 @@ export default function Dashboard() {
                   footer={
                     containerCpuDanger
                       ? `경고 임계치 ${CPU_ALERT_THRESHOLD}% 이상`
-                      : "5초 간격 실시간 포인트 누적"
+                      : "실시간 변화 추이"
                   }
                   danger={containerCpuDanger}
+                  sensitivity="high"
                 />
 
                 <LiveChartCard
@@ -877,7 +1002,8 @@ export default function Dashboard() {
                   currentValue={lastOf(containerMetrics?.metrics?.memory)}
                   unit={containerMetrics?.units?.memory || "MB"}
                   rawSeries={containerMetrics?.metrics?.memory || []}
-                  footer="최근 메모리 사용량 추이"
+                  footer="실시간 변화 추이"
+                  sensitivity="high"
                 />
 
                 <LiveChartCard
@@ -885,7 +1011,8 @@ export default function Dashboard() {
                   currentValue={lastOf(containerMetrics?.metrics?.disk)}
                   unit={containerMetrics?.units?.disk || "%"}
                   rawSeries={containerMetrics?.metrics?.disk || []}
-                  footer="최근 디스크 사용량 추이"
+                  footer="실시간 변화 추이"
+                  sensitivity="high"
                 />
 
                 <LiveChartCard
@@ -893,7 +1020,10 @@ export default function Dashboard() {
                   currentValue={lastOf(containerMetrics?.metrics?.network)}
                   unit={containerMetrics?.units?.network || "MB/s"}
                   rawSeries={containerMetrics?.metrics?.network || []}
-                  footer={`마지막 수집: ${formatDateTime(containerMetrics?.lastUpdate)}`}
+                  footer={`마지막 수집: ${formatDateTime(
+                    containerMetrics?.lastUpdate
+                  )}`}
+                  sensitivity="high"
                 />
               </div>
             )}
