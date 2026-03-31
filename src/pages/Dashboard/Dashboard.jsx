@@ -10,14 +10,10 @@ import {
 } from "../../services/monitoringApi.js";
 import { getStoredSession } from "../../services/authStorage.js";
 
-const RANGE_OPTIONS = [
-  { key: "1h", label: "1h" },
-  { key: "24h", label: "24h" },
-  { key: "7d", label: "7d" },
-];
-
-const POLLING_INTERVAL = 15000;
+const POLLING_INTERVAL = 5000;
 const CPU_ALERT_THRESHOLD = 85;
+const CHART_HEIGHT = 180;
+const CHART_WIDTH = 520;
 
 const dashboardCache = new Map();
 
@@ -32,48 +28,9 @@ function lastOf(series = []) {
 
 function avgOf(series = []) {
   if (!series.length) return 0;
-  return series.reduce((acc, cur) => acc + Number(cur.v || 0), 0) / series.length;
-}
-
-function buildSparkPath(data, w = 320, h = 86, pad = 8) {
-  if (!data?.length) return "";
-
-  const ys = data.map((d) => Number(d.v) || 0);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  const xStep = (w - pad * 2) / Math.max(data.length - 1, 1);
-
-  return data
-    .map((d, i) => {
-      const raw = Number(d.v) || 0;
-      const ratio = (raw - minY) / (maxY - minY || 1);
-      const x = pad + i * xStep;
-      const y = pad + (1 - ratio) * (h - pad * 2);
-      return `${i === 0 ? "M" : "L"} ${x} ${y}`;
-    })
-    .join(" ");
-}
-
-function statusMeta(status) {
-  if (status === "healthy") {
-    return { label: "정상", className: "is-good" };
-  }
-  if (status === "warning") {
-    return { label: "주의", className: "is-warn" };
-  }
-  return { label: "오류", className: "is-bad" };
-}
-
-function formatValue(value, unit) {
-  const safe = Number.isFinite(Number(value)) ? Number(value) : 0;
-
-  if (unit === "%") return `${safe.toFixed(1)}%`;
-  if (unit === "GB") return `${safe.toFixed(2)} GB`;
-  if (unit === "MB") return `${safe.toFixed(2)} MB`;
-  if (unit === "KB/s") return `${safe.toFixed(2)} KB/s`;
-  if (unit === "B/s") return `${safe.toFixed(2)} B/s`;
-
-  return `${safe.toFixed(2)} ${unit}`;
+  return (
+    series.reduce((acc, cur) => acc + Number(cur?.v || 0), 0) / series.length
+  );
 }
 
 function formatDateTime(value) {
@@ -87,8 +44,184 @@ function formatDateTime(value) {
   });
 }
 
+function formatValue(value, unit) {
+  const safe = Number.isFinite(Number(value)) ? Number(value) : 0;
+
+  if (unit === "%") return `${safe.toFixed(1)}%`;
+  if (unit === "GB") return `${safe.toFixed(2)} GB`;
+  if (unit === "MB") return `${safe.toFixed(2)} MB`;
+  if (unit === "KB/s") return `${safe.toFixed(2)} KB/s`;
+  if (unit === "B/s") return `${safe.toFixed(2)} B/s`;
+
+  return `${safe.toFixed(2)} ${unit || ""}`.trim();
+}
+
 function isCpuDanger(value) {
   return Number(value || 0) >= CPU_ALERT_THRESHOLD;
+}
+
+function statusMeta(status) {
+  if (status === "healthy") {
+    return { label: "정상", className: "is-good" };
+  }
+  if (status === "warning") {
+    return { label: "주의", className: "is-warn" };
+  }
+  return { label: "오류", className: "is-bad" };
+}
+
+function getNoiseGate(unit) {
+  if (unit === "%") return 0.25;
+  if (unit === "GB") return 0.03;
+  if (unit === "MB") return 3;
+  if (unit === "KB/s") return 1.5;
+  if (unit === "B/s") return 120;
+  return 0.1;
+}
+
+function smoothSeries(series = [], unit = "%") {
+  if (!Array.isArray(series) || series.length === 0) return [];
+
+  const alpha = unit === "%" ? 0.42 : unit === "GB" || unit === "MB" ? 0.35 : 0.28;
+  const gate = getNoiseGate(unit);
+
+  let prev = Number(series[0]?.v || 0);
+
+  return series.map((point, index) => {
+    const current = Number(point?.v || 0);
+
+    if (index === 0) {
+      prev = current;
+      return { ...point, sv: current };
+    }
+
+    const delta = current - prev;
+
+    if (Math.abs(delta) < gate) {
+      return { ...point, sv: prev };
+    }
+
+    const next = prev + delta * alpha;
+    prev = next;
+
+    return { ...point, sv: Number(next.toFixed(2)) };
+  });
+}
+
+function createChartGeometry(series = [], { width = CHART_WIDTH, height = CHART_HEIGHT } = {}) {
+  if (!series.length) {
+    return {
+      linePath: "",
+      areaPath: "",
+      points: [],
+      min: 0,
+      max: 100,
+      mid: 50,
+      labels: ["", "", ""],
+    };
+  }
+
+  const values = series.map((item) => Number(item?.sv ?? item?.v ?? 0));
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const span = rawMax - rawMin;
+  const topPad = span === 0 ? Math.max(rawMax * 0.12, 1) : span * 0.16;
+  const bottomPad = span === 0 ? Math.max(rawMin * 0.08, 1) : span * 0.12;
+
+  const min = Math.max(0, rawMin - bottomPad);
+  const max = rawMax + topPad;
+  const mid = (min + max) / 2;
+
+  const left = 14;
+  const right = width - 14;
+  const top = 12;
+  const bottom = height - 16;
+  const innerWidth = right - left;
+  const innerHeight = bottom - top;
+
+  const stepX = innerWidth / Math.max(series.length - 1, 1);
+
+  const points = series.map((item, index) => {
+    const value = Number(item?.sv ?? item?.v ?? 0);
+    const ratio = (value - min) / (max - min || 1);
+    const x = left + stepX * index;
+    const y = bottom - ratio * innerHeight;
+
+    return {
+      x,
+      y,
+      value,
+      rawValue: Number(item?.v ?? 0),
+      t: item?.t,
+    };
+  });
+
+  const linePath = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+    .join(" ");
+
+  const areaPath = [
+    linePath,
+    `L ${points[points.length - 1]?.x ?? right} ${bottom}`,
+    `L ${points[0]?.x ?? left} ${bottom}`,
+    "Z",
+  ].join(" ");
+
+  const first = points[0];
+  const center = points[Math.floor(points.length / 2)] || first;
+  const last = points[points.length - 1] || first;
+
+  const labels = [
+    first?.t ? timeLabel(first.t) : "",
+    center?.t ? timeLabel(center.t) : "",
+    last?.t ? timeLabel(last.t) : "",
+  ];
+
+  return {
+    linePath,
+    areaPath,
+    points,
+    min,
+    max,
+    mid,
+    labels,
+  };
+}
+
+function timeLabel(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function calcTrend(series = []) {
+  if (!series.length) return { direction: "flat", text: "변화 없음" };
+
+  const last = Number(series[series.length - 1]?.v || 0);
+  const prev = Number(series[series.length - 2]?.v ?? last);
+
+  const diff = last - prev;
+
+  if (Math.abs(diff) < 0.01) {
+    return { direction: "flat", text: "직전 수집과 통일" };
+  }
+
+  if (diff > 0) {
+    return {
+      direction: "up",
+      text: `직전 대비 +${diff.toFixed(2)}`,
+    };
+  }
+
+  return {
+    direction: "down",
+    text: `직전 대비 ${diff.toFixed(2)}`,
+  };
 }
 
 function MetricCard({ title, value, sub, danger = false }) {
@@ -101,43 +234,112 @@ function MetricCard({ title, value, sub, danger = false }) {
   );
 }
 
-function MiniChartCard({ title, value, unit, data, footer, danger = false }) {
-  const path = useMemo(() => buildSparkPath(data), [data]);
-
+function TrendChip({ trend }) {
   return (
-    <div className={`miniChartCard ${danger ? "is-danger" : ""}`}>
-      <div className="miniChartCard__head">
-        <div className="miniChartCard__title">{title}</div>
-        <div className="miniChartCard__value">
-          {unit === "%" ? Number(value || 0).toFixed(1) : Number(value || 0).toFixed(2)}
-          {unit ? <span className="miniChartCard__unit">{unit}</span> : null}
-        </div>
-      </div>
-
-      <div className="miniChartCard__body">
-        <svg viewBox="0 0 320 86" preserveAspectRatio="none" className="miniChartSvg">
-          <path d={path} className="miniChartSvg__path" />
-        </svg>
-      </div>
-
-      <div className="miniChartCard__footer">{footer}</div>
-    </div>
+    <span className={`trendChip is-${trend.direction}`}>
+      {trend.direction === "up" ? "▲" : trend.direction === "down" ? "▼" : "•"} {trend.text}
+    </span>
   );
 }
 
-function RangeTabs({ value, onChange }) {
+function LiveChartCard({
+  title,
+  currentValue,
+  unit,
+  rawSeries,
+  footer,
+  danger = false,
+}) {
+  const smoothed = useMemo(() => smoothSeries(rawSeries, unit), [rawSeries, unit]);
+  const geometry = useMemo(
+    () => createChartGeometry(smoothed, { width: CHART_WIDTH, height: CHART_HEIGHT }),
+    [smoothed]
+  );
+  const trend = useMemo(() => calcTrend(rawSeries), [rawSeries]);
+
+  const displayValue =
+    unit === "%"
+      ? Number(currentValue || 0).toFixed(1)
+      : Number(currentValue || 0).toFixed(2);
+
+  const gradientId = useMemo(
+    () => `chartArea-${title.replace(/\s+/g, "-").replace(/[^\w-]/g, "")}`,
+    [title]
+  );
+
   return (
-    <div className="rangeTabs">
-      {RANGE_OPTIONS.map((item) => (
-        <button
-          key={item.key}
-          type="button"
-          className={`rangeTabs__item ${value === item.key ? "is-active" : ""}`}
-          onClick={() => onChange(item.key)}
+    <div className={`liveChartCard ${danger ? "is-danger" : ""}`}>
+      <div className="liveChartCard__head">
+        <div>
+          <div className="liveChartCard__title">{title}</div>
+        </div>
+
+        <div className="liveChartCard__side">
+          <div className="liveChartCard__value">
+            {displayValue}
+            <span className="liveChartCard__unit">{unit}</span>
+          </div>
+          <TrendChip trend={trend} />
+        </div>
+      </div>
+
+      <div className="liveChartCard__body">
+        <svg
+          className="liveChartSvg"
+          viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
         >
-          {item.label}
-        </button>
-      ))}
+          <defs>
+            <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.10" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.01" />
+            </linearGradient>
+          </defs>
+
+          <line x1="14" y1="16" x2={CHART_WIDTH - 14} y2="16" className="chartGridLine" />
+          <line
+            x1="14"
+            y1={CHART_HEIGHT / 2}
+            x2={CHART_WIDTH - 14}
+            y2={CHART_HEIGHT / 2}
+            className="chartGridLine"
+          />
+          <line
+            x1="14"
+            y1={CHART_HEIGHT - 16}
+            x2={CHART_WIDTH - 14}
+            y2={CHART_HEIGHT - 16}
+            className="chartGridLine"
+          />
+
+          <path d={geometry.areaPath} fill={`url(#${gradientId})`} />
+          <path d={geometry.linePath} className="chartLine" />
+
+          {geometry.points.length ? (
+            <circle
+              cx={geometry.points[geometry.points.length - 1].x}
+              cy={geometry.points[geometry.points.length - 1].y}
+              r="4.5"
+              className="chartDot"
+            />
+          ) : null}
+        </svg>
+
+        <div className="chartAxisY">
+          <span>{geometry.max.toFixed(unit === "%" ? 1 : 2)}</span>
+          <span>{geometry.mid.toFixed(unit === "%" ? 1 : 2)}</span>
+          <span>{geometry.min.toFixed(unit === "%" ? 1 : 2)}</span>
+        </div>
+      </div>
+
+      <div className="chartAxisX">
+        <span>{geometry.labels[0]}</span>
+        <span>{geometry.labels[1]}</span>
+        <span>{geometry.labels[2]}</span>
+      </div>
+
+      <div className="liveChartCard__footer">{footer}</div>
     </div>
   );
 }
@@ -165,7 +367,6 @@ export default function Dashboard() {
   const companyId = session?.id || "";
   const cached = getCachedDashboardState(companyId);
 
-  const [range, setRange] = useState(cached?.range || "1h");
   const [loading, setLoading] = useState(!cached);
   const [loadingMetrics, setLoadingMetrics] = useState(!cached?.containerMetrics);
   const [refreshingContainers, setRefreshingContainers] = useState(false);
@@ -188,7 +389,6 @@ export default function Dashboard() {
     if (!companyId) return;
 
     dashboardCache.set(companyId, {
-      range,
       loading,
       loadingMetrics,
       error,
@@ -199,7 +399,6 @@ export default function Dashboard() {
     });
   }, [
     companyId,
-    range,
     loading,
     loadingMetrics,
     error,
@@ -269,10 +468,7 @@ export default function Dashboard() {
           if (prev && nextContainers.some((item) => item.id === prev)) {
             return prev;
           }
-          return cached?.selectedContainerId &&
-            nextContainers.some((item) => item.id === cached.selectedContainerId)
-            ? cached.selectedContainerId
-            : nextContainers[0]?.id || "";
+          return nextContainers[0]?.id || "";
         });
       } catch (e) {
         if (cancelled) return;
@@ -348,23 +544,12 @@ export default function Dashboard() {
         return;
       }
 
-      const sameContainerCache =
-        cached?.selectedContainerId === selectedContainerId && cached?.range === range
-          ? cached?.containerMetrics
-          : null;
-
-      if (showLoading && sameContainerCache) {
-        setContainerMetrics(sameContainerCache);
-        setLoadingMetrics(false);
-        return;
-      }
-
       try {
         if (showLoading) {
           setLoadingMetrics(true);
         }
 
-        const res = await getContainerMetrics(companyId, selectedContainerId, range);
+        const res = await getContainerMetrics(companyId, selectedContainerId, "live");
 
         if (cancelled) return;
 
@@ -391,7 +576,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [cached, companyId, selectedContainerId, range]);
+  }, [companyId, selectedContainerId]);
 
   useEffect(() => {
     if (!companyId || !selectedContainerId) return;
@@ -400,7 +585,7 @@ export default function Dashboard() {
 
     async function pollContainerMetrics() {
       try {
-        const res = await getContainerMetrics(companyId, selectedContainerId, range);
+        const res = await getContainerMetrics(companyId, selectedContainerId, "live");
 
         if (cancelled) return;
 
@@ -421,7 +606,7 @@ export default function Dashboard() {
         containerPollingRef.current = null;
       }
     };
-  }, [companyId, selectedContainerId, range]);
+  }, [companyId, selectedContainerId]);
 
   const host = hostData?.host;
   const hostMetrics = hostData?.hostMetrics || {};
@@ -440,10 +625,12 @@ export default function Dashboard() {
     return (
       <div className="unifiedPage">
         <div className="unifiedIntro">
-          <h2 className="unifiedIntro__title">통합 모니터링</h2>
-          <p className="unifiedIntro__desc">
-            회사의 호스트 및 컨테이너 정보를 불러오는 중입니다.
-          </p>
+          <div>
+            <h2 className="unifiedIntro__title">통합 모니터링 대시보드</h2>
+            <p className="unifiedIntro__desc">
+              회사의 호스트 및 컨테이너 정보를 불러오는 중입니다.
+            </p>
+          </div>
         </div>
 
         <div className="unifiedSkeleton" style={{ height: 180 }} />
@@ -459,8 +646,12 @@ export default function Dashboard() {
         <div>
           <h2 className="unifiedIntro__title">통합 모니터링 대시보드</h2>
           <p className="unifiedIntro__desc">
-            로그인한 회사 기준으로 호스트 서버와 컨테이너 리소스를 한 번에 확인합니다.
+            서버와 컨테이너의 리소스 변화를 실시간으로 확인할 수 있습니다.
           </p>
+        </div>
+
+        <div className="unifiedLiveBadge">
+          {polling ? "실시간 갱신 중..." : "5초 실시간 수집"}
         </div>
       </div>
 
@@ -472,14 +663,14 @@ export default function Dashboard() {
             <div className="sectionEyebrow">HOST SERVER</div>
             <h3 className="sectionTitle">호스트 서버 전체 리소스</h3>
             <p className="sectionDesc">
-              백엔드 응답값을 기준으로 표시하며, 15초마다 자동 폴링합니다.
+              전체 서버의 현재 리소스 사용 상태입니다.
             </p>
           </div>
 
           <div className="detailHeadRight">
             <div className={`statusPill ${hostStatus.className}`}>{hostStatus.label}</div>
             <div className="tableSummary">
-              {hostCpuDanger ? "CPU 급상승 감지" : polling ? "자동 갱신 중..." : "15초 자동 갱신"}
+              {hostCpuDanger ? "CPU 임계치 초과" : "정상 수집 중"}
             </div>
           </div>
         </div>
@@ -513,34 +704,41 @@ export default function Dashboard() {
         </div>
 
         <div className="chartGrid chartGrid--host">
-          <MiniChartCard
-            title={`CPU 사용률 (${host?.cpuUnit || "%"})`}
-            value={lastOf(hostMetrics.cpu)}
+          <LiveChartCard
+            title="CPU 사용률"
+            currentValue={lastOf(hostMetrics.cpu)}
             unit={host?.cpuUnit || "%"}
-            data={hostMetrics.cpu}
-            footer={hostCpuDanger ? `경고 임계치 ${CPU_ALERT_THRESHOLD}% 이상` : "15초 간격 최근 스냅샷"}
+            rawSeries={hostMetrics.cpu}
+            footer={
+              hostCpuDanger
+                ? `경고 임계치 ${CPU_ALERT_THRESHOLD}% 이상`
+                : "5초 간격 실시간 포인트 누적"
+            }
             danger={hostCpuDanger}
           />
-          <MiniChartCard
-            title={`메모리 사용량 (${host?.memoryUnit || "MB"})`}
-            value={lastOf(hostMetrics.memory)}
+
+          <LiveChartCard
+            title="메모리 사용량"
+            currentValue={lastOf(hostMetrics.memory)}
             unit={host?.memoryUnit || "MB"}
-            data={hostMetrics.memory}
-            footer="15초 간격 최근 스냅샷"
+            rawSeries={hostMetrics.memory}
+            footer="실제 수집값 기반 메모리 추이"
           />
-          <MiniChartCard
-            title={`디스크 사용량 (${host?.diskUnit || "%"})`}
-            value={lastOf(hostMetrics.disk)}
+
+          <LiveChartCard
+            title="디스크 사용량"
+            currentValue={lastOf(hostMetrics.disk)}
             unit={host?.diskUnit || "%"}
-            data={hostMetrics.disk}
-            footer="15초 간격 최근 스냅샷"
+            rawSeries={hostMetrics.disk}
+            footer="실제 수집값 기반 디스크 추이"
           />
-          <MiniChartCard
-            title={`네트워크 트래픽 (${host?.networkUnit || "MB/s"})`}
-            value={lastOf(hostMetrics.network)}
+
+          <LiveChartCard
+            title="네트워크 트래픽"
+            currentValue={lastOf(hostMetrics.network)}
             unit={host?.networkUnit || "MB/s"}
-            data={hostMetrics.network}
-            footer="15초 간격 최근 스냅샷"
+            rawSeries={hostMetrics.network}
+            footer={`마지막 수집: ${formatDateTime(host?.lastUpdate)}`}
           />
         </div>
       </section>
@@ -551,7 +749,7 @@ export default function Dashboard() {
             <div className="sectionEyebrow">CONTAINERS</div>
             <h3 className="sectionTitle">컨테이너 목록 + 상세 리소스</h3>
             <p className="sectionDesc">
-              컨테이너 목록과 각 상세를 한 카드 안에서 보도록 배치
+              컨테이너별 리소스 상태를 선택하여 확인할 수 있습니다.
             </p>
           </div>
 
@@ -603,7 +801,7 @@ export default function Dashboard() {
                   {selectedContainer?.name || "컨테이너"} 상세 리소스
                 </h3>
                 <p className="sectionDesc">
-                  선택한 컨테이너 기준 CPU, 메모리, 디스크, 네트워크 트래픽 현재 값을 표시합니다.
+                  선택한 컨테이너의 최신 실측값과 실시간 추이를 표시합니다.
                 </p>
               </div>
 
@@ -611,7 +809,7 @@ export default function Dashboard() {
                 <div className={`statusPill ${containerStatus.className}`}>
                   {containerCpuDanger ? "CPU 위험" : containerStatus.label}
                 </div>
-                <RangeTabs value={range} onChange={setRange} />
+                <div className="tableSummary">실시간 모드</div>
               </div>
             </div>
 
@@ -661,37 +859,40 @@ export default function Dashboard() {
               <div className="unifiedSkeleton" style={{ height: 320 }} />
             ) : (
               <div className="chartGrid chartGrid--container">
-                <MiniChartCard
-                  title={`CPU 사용률 (${containerMetrics?.units?.cpu || "%"})`}
-                  value={lastOf(containerMetrics?.metrics?.cpu)}
+                <LiveChartCard
+                  title="컨테이너 CPU 사용률"
+                  currentValue={lastOf(containerMetrics?.metrics?.cpu)}
                   unit={containerMetrics?.units?.cpu || "%"}
-                  data={containerMetrics?.metrics?.cpu || []}
+                  rawSeries={containerMetrics?.metrics?.cpu || []}
                   footer={
                     containerCpuDanger
                       ? `경고 임계치 ${CPU_ALERT_THRESHOLD}% 이상`
-                      : "15초 간격 최근 스냅샷"
+                      : "5초 간격 실시간 포인트 누적"
                   }
                   danger={containerCpuDanger}
                 />
-                <MiniChartCard
-                  title={`메모리 사용량 (${containerMetrics?.units?.memory || "MB"})`}
-                  value={lastOf(containerMetrics?.metrics?.memory)}
+
+                <LiveChartCard
+                  title="컨테이너 메모리 사용량"
+                  currentValue={lastOf(containerMetrics?.metrics?.memory)}
                   unit={containerMetrics?.units?.memory || "MB"}
-                  data={containerMetrics?.metrics?.memory || []}
-                  footer="최근 메모리 사용량"
+                  rawSeries={containerMetrics?.metrics?.memory || []}
+                  footer="최근 메모리 사용량 추이"
                 />
-                <MiniChartCard
-                  title={`디스크 사용량 (${containerMetrics?.units?.disk || "%"})`}
-                  value={lastOf(containerMetrics?.metrics?.disk)}
+
+                <LiveChartCard
+                  title="컨테이너 디스크 사용량"
+                  currentValue={lastOf(containerMetrics?.metrics?.disk)}
                   unit={containerMetrics?.units?.disk || "%"}
-                  data={containerMetrics?.metrics?.disk || []}
-                  footer="15초 간격 최근 스냅샷"
+                  rawSeries={containerMetrics?.metrics?.disk || []}
+                  footer="최근 디스크 사용량 추이"
                 />
-                <MiniChartCard
-                  title={`네트워크 트래픽 (${containerMetrics?.units?.network || "MB/s"})`}
-                  value={lastOf(containerMetrics?.metrics?.network)}
+
+                <LiveChartCard
+                  title="컨테이너 네트워크 트래픽"
+                  currentValue={lastOf(containerMetrics?.metrics?.network)}
                   unit={containerMetrics?.units?.network || "MB/s"}
-                  data={containerMetrics?.metrics?.network || []}
+                  rawSeries={containerMetrics?.metrics?.network || []}
                   footer={`마지막 수집: ${formatDateTime(containerMetrics?.lastUpdate)}`}
                 />
               </div>

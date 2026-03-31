@@ -2,7 +2,9 @@ const DEFAULT_BASE_URL = "http://localhost:8080/api";
 export const API_BASE_URL =
   import.meta?.env?.VITE_API_BASE_URL || DEFAULT_BASE_URL;
 
-const HISTORY_LIMIT = 12;
+// 실시간 그래프는 "가짜 과거 데이터"가 아니라,
+// 실제로 수집된 스냅샷만 쌓이도록 한다.
+const HISTORY_LIMIT = 80;
 
 async function fetchJson(url, { method = "GET", headers, body, signal } = {}) {
   const res = await fetch(url, {
@@ -115,10 +117,19 @@ function mapBackendStatus(status) {
 }
 
 function appendSeriesPoint(series = [], value, timestamp = Date.now(), limit = HISTORY_LIMIT) {
+  const safeValue = round(value, 2);
   const next = Array.isArray(series) ? [...series] : [];
+
+  const last = next[next.length - 1];
+
+  // 같은 시각 값이 중복으로 들어오지 않도록 최소 보호
+  if (last && Number(last.t) === Number(timestamp)) {
+    return next;
+  }
+
   next.push({
     t: timestamp,
-    v: round(value, 2),
+    v: safeValue,
   });
 
   if (next.length > limit) {
@@ -128,12 +139,15 @@ function appendSeriesPoint(series = [], value, timestamp = Date.now(), limit = H
   return next;
 }
 
-function makeInitialSeries(value, length = HISTORY_LIMIT) {
-  const safe = round(value, 2);
-  return Array.from({ length }, (_, idx) => ({
-    t: idx,
-    v: safe,
-  }));
+// 기존 코드처럼 같은 값 12개를 미리 뿌리지 않는다.
+// 그래프는 "실제로 받은 첫 값 1개"부터 시작하는 게 정확하다.
+function makeInitialSeries(value) {
+  return [
+    {
+      t: Date.now(),
+      v: round(value, 2),
+    },
+  ];
 }
 
 function avgSeries(series = []) {
@@ -376,7 +390,7 @@ export async function getContainers(companyId, { signal } = {}) {
 export async function getContainerMetrics(
   companyId,
   containerId,
-  range = "1h",
+  range = "live",
   { signal } = {}
 ) {
   const qs = new URLSearchParams({ period: String(range) }).toString();
