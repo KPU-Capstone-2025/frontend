@@ -259,7 +259,7 @@
 .logRow{
   width: 100%;
   display: grid;
-  grid-template-columns: 170px 120px 140px minmax(520px, 1fr);
+  grid-template-columns: 170px 120px 140px minmax(0, 1fr); 
   gap: 0;
   padding: 12px 14px;
   border-bottom: 1px solid rgba(15,23,42,0.06);
@@ -304,6 +304,7 @@
   color: rgba(15,23,42,0.82);
   word-break: break-word;
   font-size: 13px;
+  white-space: normal;
 }
 
 .msgHint{
