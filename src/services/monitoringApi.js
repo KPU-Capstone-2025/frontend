@@ -1,5 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
 
+// 수정 후 (ALB 주소로 변경)
+const BASE_URL = "http://monitor-alb-1010973634.ap-northeast-2.elb.amazonaws.com/api";
 async function request(path, { method = "GET", query, body } = {}) {
   const url = new URL(BASE_URL + path);
   if (query) Object.entries(query).forEach(([k, v]) => v && url.searchParams.set(k, String(v)));
