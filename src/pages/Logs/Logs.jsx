@@ -1,11 +1,20 @@
-import { useState, useEffect, useCallback, Fragment } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "./logs.css";
 import { getStoredSession, buildCompanyDisplayName } from "../../services/authStorage.js";
-import { getLogs, analyzeLog } from "../../services/monitoringApi.js"; // 🌟 logApi 안 쓰고 직결
+import { getLogs, analyzeLog } from "../../services/monitoringApi.js";
 
+/**
+ * [수정사항]
+ * 1. 백엔드 MonitoringModule의 getLogs 응답 구조(body, severity) 파싱 로직 정밀화
+ * 2. timestamp를 백엔드 포맷(나노/밀리초)에 맞게 안전하게 변환
+ */
 function parseCleanText(rawBody) {
-  try { const parsed = JSON.parse(rawBody); return parsed.body || rawBody; } 
-  catch (e) { return rawBody; }
+  try {
+    const parsed = JSON.parse(rawBody);
+    return parsed.body || rawBody;
+  } catch (e) {
+    return rawBody;
+  }
 }
 
 export default function Logs() {
@@ -14,7 +23,6 @@ export default function Logs() {
   const companyName = buildCompanyDisplayName(session);
 
   const [logs, setLogs] = useState({ items: [] });
-  // 🌟 전체 개수 캐싱용 (검색 안 했을 때 기준)
   const [globalCounts, setGlobalCounts] = useState({ all: 0, ERROR: 0, WARN: 0, INFO: 0 });
   const [loading, setLoading] = useState(false);
   const [expandedLogId, setExpandedLogId] = useState(null);
@@ -35,20 +43,22 @@ export default function Logs() {
       });
 
       const mapped = (data || []).map((item, idx) => {
-        const ts = Number(item.timestamp.slice(0, 13)); 
+        // 백엔드 timestamp 처리 (문자열인 경우 숫자로 변환)
+        const tsString = String(item.timestamp);
+        const ts = Number(tsString.length > 13 ? tsString.slice(0, 13) : tsString);
         const dateObj = new Date(ts);
+
         return {
           id: `log-${ts}-${idx}`,
           time: dateObj.toLocaleTimeString("ko-KR", { hour12: false }),
           date: dateObj.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", weekday: "short" }),
           level: item.severity || "INFO",
-          text: parseCleanText(item.body)
+          text: parseCleanText(item.body || item.rawMessage)
         };
       });
 
       setLogs({ items: mapped });
 
-      // 필터가 없을 때만 전체 카운트를 갱신 (탭의 숫자가 변하지 않도록)
       if (filters.level === "all" && filters.q === "") {
         setGlobalCounts({
           all: mapped.length,
@@ -57,13 +67,15 @@ export default function Logs() {
           INFO: mapped.filter(l => l.level === "INFO").length,
         });
       }
-    } catch (err) { console.error("로그 조회 실패"); } 
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error("로그 조회 실패");
+    } finally {
+      setLoading(false);
+    }
   }, [companyId, filters]);
 
   useEffect(() => { loadLogs(); }, [loadLogs]);
 
-  // AI 분석
   async function handleAiAnalysis(e, item) {
     e.stopPropagation(); 
     if (aiAnalysis[item.id]) { setExpandedLogId(prev => prev === item.id ? null : item.id); return; }
@@ -72,8 +84,11 @@ export default function Logs() {
       const result = await analyzeLog(item.text);
       setAiAnalysis(prev => ({ ...prev, [item.id]: result }));
       setExpandedLogId(item.id); 
-    } catch (err) { alert("AI 분석 실패"); } 
-    finally { setAnalyzingId(null); }
+    } catch (err) {
+      alert("AI 분석 실패");
+    } finally {
+      setAnalyzingId(null);
+    }
   }
 
   return (
@@ -84,23 +99,19 @@ export default function Logs() {
 
         <div className="logPanel">
           <div className="filterRow">
-            {/* 🌟 탭 버튼 안에 개수 포함 */}
             <div className="sourceTabs" role="tablist">
-              <button type="button" className={`sourceTab ${filters.level === "all" ? "on" : ""}`} onClick={() => setFilters({ ...filters, level: "all" })}>
-                전체 <span style={{opacity:0.6}}>({globalCounts.all})</span>
-              </button>
-              <button type="button" className={`sourceTab ${filters.level === "ERROR" ? "on" : ""}`} onClick={() => setFilters({ ...filters, level: "ERROR" })} style={{color: filters.level === "ERROR" ? '#dc2626' : ''}}>
-                ERROR <span style={{opacity:0.6}}>({globalCounts.ERROR})</span>
-              </button>
-              <button type="button" className={`sourceTab ${filters.level === "WARN" ? "on" : ""}`} onClick={() => setFilters({ ...filters, level: "WARN" })} style={{color: filters.level === "WARN" ? '#ea580c' : ''}}>
-                WARN <span style={{opacity:0.6}}>({globalCounts.WARN})</span>
-              </button>
-              <button type="button" className={`sourceTab ${filters.level === "INFO" ? "on" : ""}`} onClick={() => setFilters({ ...filters, level: "INFO" })}>
-                INFO <span style={{opacity:0.6}}>({globalCounts.INFO})</span>
-              </button>
+              {["all", "ERROR", "WARN", "INFO"].map((lv) => (
+                <button 
+                  key={lv} 
+                  type="button" 
+                  className={`sourceTab ${filters.level === lv ? "on" : ""}`} 
+                  onClick={() => setFilters({ ...filters, level: lv })}
+                  style={{ color: lv === "ERROR" && filters.level === "ERROR" ? '#dc2626' : (lv === "WARN" && filters.level === "WARN" ? '#ea580c' : '') }}
+                >
+                  {lv === "all" ? "전체" : lv} <span>({globalCounts[lv]})</span>
+                </button>
+              ))}
             </div>
-
-            {/* 🌟 검색창 정상화 */}
             <div className="searchBox">
               <input className="searchInput" type="text" placeholder="로그 키워드 검색..." value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} />
             </div>
@@ -108,7 +119,7 @@ export default function Logs() {
         </div>
 
         <div className="logTableCard">
-          <div className="logTableHead" style={{ display: 'grid', gridTemplateColumns: '170px 100px minmax(0, 1fr)', padding: '12px 14px', background: 'rgba(15,23,42,0.02)', borderBottom: '1px solid var(--line)' }}>
+          <div className="logTableHead" style={{ display: 'grid', gridTemplateColumns: '170px 100px minmax(0, 1fr)', padding: '12px 14px', background: 'rgba(15,23,42,0.02)', borderBottom: '1px solid #e2e8f0' }}>
             <div className="th">시간</div>
             <div className="th">레벨</div>
             <div className="th">로그 메시지</div>
@@ -122,8 +133,9 @@ export default function Logs() {
                 const hasAnalysis = !!aiAnalysis[item.id];
                 
                 return (
-                  <div key={item.id} className={`logRow ${hasAnalysis ? "expandable" : ""} ${expandedLogId === item.id ? "active" : ""}`} onClick={() => hasAnalysis && setExpandedLogId(prev => prev === item.id ? null : item.id)}
-                       style={{ display: 'grid', gridTemplateColumns: '170px 100px minmax(0, 1fr)', padding: '12px 14px', borderBottom: '1px solid rgba(15,23,42,0.06)', background: '#fff' }}>
+                  <div key={item.id} className={`logRow ${hasAnalysis ? "expandable" : ""} ${expandedLogId === item.id ? "active" : ""}`} 
+                       onClick={() => hasAnalysis && setExpandedLogId(prev => prev === item.id ? null : item.id)}
+                       style={{ display: 'grid', gridTemplateColumns: '170px 100px minmax(0, 1fr)', padding: '12px 14px', borderBottom: '1px solid #f1f5f9', background: '#fff' }}>
                     
                     <div className="td timeCell">
                       <div className="timeMain mono">{item.time}</div>
@@ -136,7 +148,6 @@ export default function Logs() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                         <div className="msgText" style={{ wordBreak: 'break-all', whiteSpace: 'normal', flex: 1, paddingRight: '15px' }}>{item.text}</div>
                         
-                        {/* 🌟 AI 분석을 '진짜 버튼 UI'로 수정 */}
                         {isErrorOrWarn && !hasAnalysis && (
                           <button onClick={(e) => handleAiAnalysis(e, item)} disabled={analyzingId === item.id} style={{ 
                             padding: '6px 12px', background: '#eef2ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' 
@@ -150,7 +161,7 @@ export default function Logs() {
                       {hasAnalysis && expandedLogId === item.id && (
                         <div className="interpretPanel" style={{ marginTop: '10px', padding: '15px', background: '#f8fafc', borderLeft: '4px solid #3b82f6', borderRadius: '4px' }}>
                           <div className="interpretRow">
-                            <span className="interpretKey" style={{ color: '#2563eb' }}>🤖 AI 가이드</span>
+                            <span className="interpretKey" style={{ color: '#2563eb', fontWeight: 'bold', marginRight: '10px' }}>🤖 AI 가이드:</span>
                             <span className="interpretVal" style={{ lineHeight: '1.6' }}>{aiAnalysis[item.id]}</span>
                           </div>
                         </div>

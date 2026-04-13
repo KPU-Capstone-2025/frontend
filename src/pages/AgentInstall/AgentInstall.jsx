@@ -3,7 +3,11 @@ import "./agentInstall.css";
 import { getStoredSession, buildCompanyDisplayName } from "../../services/authStorage.js";
 import { getAgentDestination } from "../../services/monitoringApi.js";
 
-// --- 복사 버튼 컴포넌트 ---
+/**
+ * [수정사항]
+ * 1. collectorUrl의 http:// 중복 방지 로직 적용
+ * 2. 도메인 data.monittoring.co.kr 기반의 깔끔한 명령어 생성
+ */
 function CopyButton({ text, label = "복사", className = "", disabled = false }) {
   const [copied, setCopied] = useState(false);
   async function handleCopy() {
@@ -23,7 +27,6 @@ function CopyButton({ text, label = "복사", className = "", disabled = false }
   );
 }
 
-// --- 섹션 카드 컴포넌트 ---
 function SectionCard({ icon, title, sub, right, children }) {
   return (
     <section className="agentCard">
@@ -42,7 +45,6 @@ function SectionCard({ icon, title, sub, right, children }) {
   );
 }
 
-// --- 코드 블록 컴포넌트 ---
 function CodeBlock({ code, copyLabel = "전체 복사", disabled = false }) {
   return (
     <div className="codeBlockWrap">
@@ -56,10 +58,9 @@ function CodeBlock({ code, copyLabel = "전체 복사", disabled = false }) {
 
 export default function AgentInstall() {
   const session = getStoredSession();
-  const companyId = session?.id; // 🌟 숫자 ID (PK) 사용
+  const companyId = session?.id;
   const companyName = buildCompanyDisplayName(session);
 
-  // 🌟 [중요] ReferenceError 해결: agentInfo 상태 선언
   const [agentInfo, setAgentInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -73,9 +74,8 @@ export default function AgentInstall() {
       }
       try {
         setLoading(true);
-        // 백엔드: /api/company/agent/{id} 호출
         const data = await getAgentDestination(companyId);
-        setAgentInfo(data); // 🌟 { monitoringId: "...", collectorUrl: "..." } 저장
+        setAgentInfo(data); 
       } catch (err) {
         setError("설치 정보를 불러오지 못했습니다. 서버 상태를 확인하세요.");
       } finally {
@@ -85,11 +85,9 @@ export default function AgentInstall() {
     loadAgentInfo();
   }, [companyId]);
 
-  // 변수 매핑 (백엔드 DTO에 맞춤)
   const monitoringId = agentInfo?.monitoringId || "불러오는 중...";
-  const collectorUrl = agentInfo?.collectorUrl || "불러오는 중...";
+  const collectorUrl = agentInfo?.collectorUrl || "data.monittoring.co.kr:80";
 
-  // Docker 실행 명령어 생성
   const dockerRunCommand = useMemo(() => {
     return [
       "sudo docker run -d \\",
@@ -101,18 +99,17 @@ export default function AgentInstall() {
       "  -v /proc:/host/proc:ro \\",
       "  -v /sys:/host/sys:ro \\",
       `  -e MONITORING_ID="${monitoringId}" \\`,
-      `  -e COLLECTOR_URL="${collectorUrl}" \\`,
+      `  -e COLLECTOR_URL="${collectorUrl.replace("http://", "")}" \\`,
       "  kimhongseok/metric-agent:latest",
     ].join("\n");
   }, [collectorUrl, monitoringId]);
 
-  // Curl 설치 명령어 생성
   const curlCommand = useMemo(() => {
     return [
       "curl -fLO http://agent.monittoring.co.kr/metric-agent",
       "chmod +x metric-agent",
       `export MONITORING_ID="${monitoringId}"`,
-      `export COLLECTOR_URL="${collectorUrl}"`,
+      `export COLLECTOR_URL="${collectorUrl.replace("http://", "")}"`,
       "sudo -E nohup ./metric-agent > metric.log 2>&1 &",
     ].join("\n");
   }, [collectorUrl, monitoringId]);

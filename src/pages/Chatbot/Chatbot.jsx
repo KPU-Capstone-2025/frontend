@@ -3,6 +3,11 @@ import "./chatbot.css";
 import { getStoredSession } from "../../services/authStorage.js";
 import { askChatbot, getChatHistory } from "../../services/monitoringApi.js";
 
+/**
+ * [수정사항]
+ * 1. 백엔드 ChatHistoryResponse의 createdAt 포맷 반영
+ * 2. assistant 역할을 assistant로 통일
+ */
 const EXAMPLE_QUESTIONS = [
   "현재 컨테이너별 메모리 사용량 알려줘",
   "최근에 발생한 주요 장애 로그 요약해줘",
@@ -17,16 +22,18 @@ export default function Chatbot() {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
 
-  // 현재 시간 구하는 헬퍼
   const getCurrentTime = () => new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
   useEffect(() => {
     if (!monitoringId) return;
     getChatHistory(monitoringId).then(history => {
       if (history && history.length > 0) {
-    // 백엔드의 createdAt 시간을 그대로 사용
-    setMessages(history.map(h => ({ role: h.role, content: h.content, time: h.createdAt })));
-        setMessages(mappedHistory);
+        // 백엔드에서 준 createdAt 사용
+        setMessages(history.map(h => ({ 
+          role: h.role === "assistant" ? "assistant" : "user", 
+          content: h.content, 
+          time: h.createdAt 
+        })));
       } else {
         setMessages([{ role: "assistant", content: "안녕하세요! 서버 상태, 로그, 장애 원인 등을 편하게 물어보세요! 🤖", time: getCurrentTime() }]);
       }
