@@ -5,8 +5,8 @@ import { getAgentDestination } from "../../services/monitoringApi.js";
 
 /**
  * [수정사항]
- * 1. collectorUrl의 http:// 중복 방지 로직 적용
- * 2. 도메인 data.monittoring.co.kr 기반의 깔끔한 명령어 생성
+ * 1. API 응답 데이터가 바로 monitoringId를 가지고 있는지 체크하도록 보완
+ * 2. 로딩 및 에러 상태 처리 강화
  */
 function CopyButton({ text, label = "복사", className = "", disabled = false }) {
   const [copied, setCopied] = useState(false);
@@ -74,10 +74,20 @@ export default function AgentInstall() {
       }
       try {
         setLoading(true);
+        // /api/company/agent/{id} 호출
         const data = await getAgentDestination(companyId);
-        setAgentInfo(data); 
+        
+        // 데이터가 잘 왔는지 로그로 확인 (F12 콘솔창)
+        console.log("Agent Info Data:", data);
+        
+        if (data && data.monitoringId) {
+          setAgentInfo(data); 
+        } else {
+          setError("발급된 모니터링 정보를 찾을 수 없습니다.");
+        }
       } catch (err) {
-        setError("설치 정보를 불러오지 못했습니다. 서버 상태를 확인하세요.");
+        console.error(err);
+        setError("서버로부터 설치 정보를 불러오지 못했습니다.");
       } finally {
         setLoading(false);
       }
@@ -131,7 +141,7 @@ export default function AgentInstall() {
               </div>
               <div className="statusCard__text">
                 {companyName}<br />
-                {error ? <span style={{color: 'red'}}>{error}</span> : "명령어를 복사하여 서버에서 실행하세요."}
+                {error ? <span style={{color: 'red', fontSize: '12px'}}>{error}</span> : "명령어를 복사하여 서버에서 실행하세요."}
               </div>
             </div>
           </div>
@@ -150,7 +160,7 @@ export default function AgentInstall() {
               <div className="stepItem__num">1</div>
               <div className="stepItem__body">
                 <div className="stepItem__title">명령어 실행</div>
-                <CodeBlock code={dockerRunCommand} disabled={loading || !!error} />
+                <CodeBlock code={dockerRunCommand} disabled={loading || !!agentInfo === false} />
               </div>
             </div>
           </div>
@@ -162,7 +172,7 @@ export default function AgentInstall() {
               <div className="stepItem__num">1</div>
               <div className="stepItem__body">
                 <div className="stepItem__title">스크립트 실행</div>
-                <CodeBlock code={curlCommand} disabled={loading || !!error} />
+                <CodeBlock code={curlCommand} disabled={loading || !!agentInfo === false} />
               </div>
             </div>
           </div>
