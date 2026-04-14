@@ -2,34 +2,101 @@ const DEFAULT_BASE_URL = "http://localhost:8080/api";
 export const API_BASE_URL =
   import.meta?.env?.VITE_API_BASE_URL || DEFAULT_BASE_URL;
 
-// 실시간 그래프는 "가짜 과거 데이터"가 아니라,
-// 실제로 수집된 스냅샷만 쌓이도록 한다.
+const USE_MOCK = import.meta?.env?.VITE_USE_MOCK === "true";
+const ENABLE_FALLBACK =
+  import.meta?.env?.VITE_ENABLE_API_FALLBACK !== "false";
+
+// 실시간 그래프
+// 실제로 수집된 스냅샷 쌓이도록 .
 const HISTORY_LIMIT = 80;
 
-async function fetchJson(url, { method = "GET", headers, body, signal } = {}) {
-  const res = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(headers || {}),
-    },
-    body,
-    signal,
-  });
+const mockRuntime = {
+  hostTick: 0,
+  containerTick: {},
+  containerStatus: {},
+};
 
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+function createApiError(message, extras = {}) {
+  const err = new Error(message);
+  Object.assign(err, extras);
+  return err;
+}
+
+function shouldFallbackToMock(err) {
+  if (!ENABLE_FALLBACK) return false;
+  if (!err) return false;
+  if (err.name === "AbortError") return false;
+  if (err.isNetworkError) return true;
+  if (typeof err.status === "number" && err.status >= 500) return true;
+  return false;
+}
+
+async function withMockFallback(realFn, mockFn) {
+  if (USE_MOCK) {
+    return mockFn();
+  }
+
+  try {
+    return await realFn();
+  } catch (err) {
+    if (shouldFallbackToMock(err)) {
+      console.warn("[monitoringApi] real API 실패 → mock fallback", err);
+      return mockFn();
+    }
+    throw err;
+  }
+}
+
+async function fetchJson(url, { method = "GET", headers, body, signal } = {}) {
+  let res;
+
+  try {
+    res = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(headers || {}),
+      },
+      body,
+      signal,
+    });
+  } catch (err) {
+    throw createApiError("백엔드 서버에 연결할 수 없습니다.", {
+      cause: err,
+      isNetworkError: true,
+    });
+  }
+
+  let text = "";
+  try {
+    text = await res.text();
+  } catch {
+    text = "";
+  }
+
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
 
   if (!res.ok) {
     const msg =
       (data && (data.message || data.error)) || `요청 실패 (${res.status})`;
-    const err = new Error(msg);
-    err.status = res.status;
-    err.data = data;
-    throw err;
+
+    throw createApiError(msg, {
+      status: res.status,
+      data,
+      isNetworkError: false,
+    });
   }
 
   return data;
+}
+
+function sleep(ms = 180) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function clampNumber(value, fallback = 0) {
@@ -122,7 +189,6 @@ function appendSeriesPoint(series = [], value, timestamp = Date.now(), limit = H
 
   const last = next[next.length - 1];
 
-  // 같은 시각 값이 중복으로 들어오지 않도록 최소 보호
   if (last && Number(last.t) === Number(timestamp)) {
     return next;
   }
@@ -139,8 +205,6 @@ function appendSeriesPoint(series = [], value, timestamp = Date.now(), limit = H
   return next;
 }
 
-// 기존 코드처럼 같은 값 12개를 미리 뿌리지 않는다.
-// 그래프는 "실제로 받은 첫 값 1개"부터 시작하는 게 정확하다.
 function makeInitialSeries(value) {
   return [
     {
@@ -262,6 +326,154 @@ function normalizeContainerMetricsResponse(payload) {
   };
 }
 
+function mockWave(base, tick, amplitude, min = 0, max = 100) {
+  const noise = (Math.random() - 0.5) * amplitude * 0.55;
+  const swing = Math.sin(tick / 2.8) * amplitude;
+  return Math.max(min, Math.min(max, base + swing + noise));
+}
+
+function getMockHostPayload() {
+  mockRuntime.hostTick += 1;
+
+  const cpu = mockWave(26, mockRuntime.hostTick, 8, 6, 92);
+  const memoryPercent = mockWave(58, mockRuntime.hostTick + 4, 6, 20, 95);
+  const diskPercent = mockWave(44, mockRuntime.hostTick + 9, 4, 15, 88);
+  const networkKb = mockWave(280, mockRuntime.hostTick + 3, 180, 30, 2200);
+
+  return {
+    result: {
+      status: cpu >= 85 ? "WARNING" : "HEALTHY",
+      cpuUsage: cpu,
+      memoryUsage: memoryPercent,
+      diskUsage: diskPercent,
+      networkTraffic: networkKb * 1024,
+    },
+  };
+}
+
+function getMockContainerList(companyId) {
+  const base = [
+    { id: "frontend", bias: 18 },
+    { id: "backend", bias: 34 },
+    { id: "db", bias: 23 },
+    { id: "redis", bias: 14 },
+    { id: "nginx", bias: 11 },
+  ];
+
+  return {
+    containers: base.map((item, idx) => {
+      const tick = (mockRuntime.hostTick || 1) + idx * 2;
+      const cpu = mockWave(item.bias, tick, 18, 0, 100);
+
+      let status = "RUNNING";
+      if (cpu >= 82) status = "WARNING";
+      if (companyId === "mock-down-company" && item.id === "backend") {
+        status = "DANGER";
+      }
+
+      mockRuntime.containerStatus[item.id] = status;
+
+      return {
+        containerId: item.id,
+        status,
+      };
+    }),
+  };
+}
+
+function getMockContainerMetricPayload(containerId) {
+  const nextTick = (mockRuntime.containerTick[containerId] || 0) + 1;
+  mockRuntime.containerTick[containerId] = nextTick;
+
+  const profileMap = {
+    frontend: { cpu: 14, mem: 220, disk: 28, net: 120 },
+    backend: { cpu: 38, mem: 420, disk: 36, net: 320 },
+    db: { cpu: 24, mem: 680, disk: 52, net: 210 },
+    redis: { cpu: 16, mem: 180, disk: 18, net: 140 },
+    nginx: { cpu: 12, mem: 120, disk: 20, net: 170 },
+  };
+
+  const profile = profileMap[containerId] || {
+    cpu: 20,
+    mem: 256,
+    disk: 30,
+    net: 160,
+  };
+
+  const cpu = mockWave(profile.cpu, nextTick, 13, 0, 100);
+  const memoryMb = mockWave(profile.mem, nextTick + 1, profile.mem * 0.08, 40, 4096);
+  const disk = mockWave(profile.disk, nextTick + 4, 4.5, 1, 100);
+  const networkKb = mockWave(profile.net, nextTick + 2, profile.net * 0.2, 8, 4096);
+
+  const status = cpu >= 85 ? "WARNING" : "RUNNING";
+
+  return {
+    results: {
+      status,
+      cpuUsage: cpu,
+      memoryUsage: memoryMb * 1024 * 1024,
+      diskUsage: disk,
+      networkTraffic: networkKb * 1024,
+    },
+  };
+}
+
+function buildMockAgentDestination(companyId) {
+  return {
+    apiKey: `mock-monitor-${companyId}`,
+    collectorUrl: "http://localhost:4318",
+  };
+}
+
+function buildMockLogs(companyId, limit = 100) {
+  const sources = ["frontend", "backend", "db", "redis", "nginx"];
+  const severities = ["INFO", "INFO", "INFO", "WARN", "ERROR"];
+
+  const rows = Array.from({ length: Math.min(limit, 100) }).map((_, idx) => {
+    const severity = severities[idx % severities.length];
+    const sourceName = sources[idx % sources.length];
+    const sourceType = sourceName === "db" ? "host" : "container";
+    const ts = new Date(Date.now() - idx * 1000 * 60 * 7).toISOString();
+
+    let body = "정상 동작 중입니다.";
+    let interpretation = null;
+
+    if (severity === "WARN") {
+      body = `${sourceName} 컨테이너의 메모리 사용량이 평소보다 높습니다.`;
+      interpretation = {
+        title: "메모리 사용량 증가",
+        detail: "최근 수집 구간에서 메모리 사용량이 기준선보다 높게 유지되고 있습니다.",
+        action: "불필요한 프로세스, 누수 가능성, 캐시 증가 여부를 확인하세요.",
+        risk: "warn",
+      };
+    }
+
+    if (severity === "ERROR") {
+      body = `${sourceName} 컨테이너에서 일시적인 오류가 감지되었습니다.`;
+      interpretation = {
+        title: "오류 이벤트 감지",
+        detail: "컨테이너 응답 실패 또는 내부 예외 로그가 감지되었습니다.",
+        action: "직전 배포 이력과 에러 로그 원문을 함께 확인하세요.",
+        risk: "danger",
+      };
+    }
+
+    return {
+      id: `${companyId}-${sourceName}-${idx + 1}`,
+      timestamp: ts,
+      severity,
+      sourceType,
+      sourceName,
+      body,
+      interpretation,
+    };
+  });
+
+  return {
+    results: rows,
+  };
+}
+
 export function mergeHostSnapshot(prevHostData, nextHostData) {
   if (!prevHostData) return nextHostData;
 
@@ -332,59 +544,109 @@ export function mergeContainerMetricsSnapshot(prevMetrics, nextMetrics) {
 }
 
 export async function loginCompany({ email, password }, { signal } = {}) {
-  const data = await fetchJson(`${API_BASE_URL}/company/login`, {
-    method: "POST",
-    body: JSON.stringify({ email, password }),
-    signal,
-  });
+  return withMockFallback(
+    async () => {
+      const data = await fetchJson(`${API_BASE_URL}/company/login`, {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+        signal,
+      });
 
-  const id = data?.id;
-  const name = data?.name;
+      const id = data?.id;
+      const name = data?.name;
 
-  if (!id) {
-    throw new Error("로그인 응답에서 id를 찾지 못했습니다.");
-  }
+      if (!id) {
+        throw createApiError("로그인 응답에서 id를 찾지 못했습니다.");
+      }
 
-  return {
-    id,
-    name: name || "",
-    email,
-  };
+      return {
+        id,
+        name: name || "",
+        email,
+      };
+    },
+    async () => {
+      await sleep();
+      return {
+        id: 9999,
+        name: "Mock Company",
+        email,
+      };
+    }
+  );
 }
 
 export async function registerCompany(
   { name, email, password, ip, phone },
   { signal } = {}
 ) {
-  return fetchJson(`${API_BASE_URL}/company/register`, {
-    method: "POST",
-    body: JSON.stringify({ name, email, password, ip, phone }),
-    signal,
-  });
+  return withMockFallback(
+    async () => {
+      return fetchJson(`${API_BASE_URL}/company/register`, {
+        method: "POST",
+        body: JSON.stringify({ name, email, password, ip, phone }),
+        signal,
+      });
+    },
+    async () => {
+      await sleep();
+      return {
+        success: true,
+        id: Date.now(),
+        name,
+        email,
+        ip,
+      };
+    }
+  );
 }
 
 export async function getAgentDestination(companyId, { signal } = {}) {
-  const data = await fetchJson(`${API_BASE_URL}/agent/${companyId}`, {
-    signal,
-  });
+  return withMockFallback(
+    async () => {
+      const data = await fetchJson(`${API_BASE_URL}/agent/${companyId}`, {
+        signal,
+      });
 
-  return data?.result || null;
+      return data?.result || null;
+    },
+    async () => {
+      await sleep(120);
+      return buildMockAgentDestination(companyId);
+    }
+  );
 }
 
 export async function getHostOverview(companyId, { signal } = {}) {
-  const data = await fetchJson(`${API_BASE_URL}/dashboard/${companyId}/host`, {
-    signal,
-  });
+  return withMockFallback(
+    async () => {
+      const data = await fetchJson(`${API_BASE_URL}/dashboard/${companyId}/host`, {
+        signal,
+      });
 
-  return normalizeHostResponse(data, companyId);
+      return normalizeHostResponse(data, companyId);
+    },
+    async () => {
+      await sleep(140);
+      return normalizeHostResponse(getMockHostPayload(), companyId);
+    }
+  );
 }
 
 export async function getContainers(companyId, { signal } = {}) {
-  const data = await fetchJson(`${API_BASE_URL}/dashboard/container/${companyId}`, {
-    signal,
-  });
+  return withMockFallback(
+    async () => {
+      const data = await fetchJson(`${API_BASE_URL}/dashboard/container/${companyId}`, {
+        signal,
+      });
 
-  return normalizeContainersResponse(data);
+      return normalizeContainersResponse(data);
+    },
+    async () => {
+      await sleep(140);
+      return normalizeContainersResponse(getMockContainerList(companyId));
+    }
+  );
 }
 
 export async function getContainerMetrics(
@@ -393,11 +655,41 @@ export async function getContainerMetrics(
   range = "live",
   { signal } = {}
 ) {
-  const qs = new URLSearchParams({ period: String(range) }).toString();
-  const data = await fetchJson(
-    `${API_BASE_URL}/dashboard/${companyId}/${encodeURIComponent(containerId)}?${qs}`,
-    { signal }
-  );
+  return withMockFallback(
+    async () => {
+      const qs = new URLSearchParams({ period: String(range) }).toString();
+      const data = await fetchJson(
+        `${API_BASE_URL}/dashboard/${companyId}/${encodeURIComponent(containerId)}?${qs}`,
+        { signal }
+      );
 
-  return normalizeContainerMetricsResponse(data);
+      return normalizeContainerMetricsResponse(data);
+    },
+    async () => {
+      await sleep(120);
+      return normalizeContainerMetricsResponse(getMockContainerMetricPayload(containerId));
+    }
+  );
+}
+
+export async function getLogs(
+  companyId,
+  { limit = 100, query, demo, signal } = {}
+) {
+  return withMockFallback(
+    async () => {
+      const qs = new URLSearchParams();
+      qs.set("limit", String(limit));
+      if (query) qs.set("query", String(query));
+      if (demo !== undefined) qs.set("demo", String(demo));
+
+      return fetchJson(`${API_BASE_URL}/dashboard/${companyId}/logs?${qs.toString()}`, {
+        signal,
+      });
+    },
+    async () => {
+      await sleep(120);
+      return buildMockLogs(companyId, limit);
+    }
+  );
 }

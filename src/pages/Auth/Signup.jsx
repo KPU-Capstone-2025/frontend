@@ -283,7 +283,7 @@ function Field({ label, required, children }) {
   );
 }
 
-function AgreeRow({ label, checked, onChange, isSub }) {
+function AgreeRow({ label, checked, onChange, isSub = false }) {
   return (
     <label className={`checkRow ${isSub ? "checkRow--sub" : ""}`}>
       <span>{label}</span>
