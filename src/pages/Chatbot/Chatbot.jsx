@@ -63,19 +63,19 @@ export default function Chatbot() {
   };
 
   return (
-    <div className="chatbotPage" style={{ display: 'flex', justifyContent: 'center', background: '#f0f2f5', height: 'calc(100vh - 60px)', padding: '20px' }}>
+    <div className="chatbotPage" style={{ display: 'flex', justifyContent: 'center', background: 'transparent', height: 'calc(100vh - 60px)', padding: '4px 0 24px' }}>
       <div className="chatbotContainer" style={{ 
         width: '100%', maxWidth: '900px', height: '100%', display: 'flex', flexDirection: 'column', 
-        background: '#fff', borderRadius: '16px', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', overflow: 'hidden' 
+        background: '#fff', borderRadius: '8px', boxShadow: 'var(--shadow)', border: '1px solid #d8d8d8', overflow: 'hidden'
       }}>
-        <header style={{ padding: '20px', background: '#ffffff', borderBottom: '1px solid #eaeaea', display: 'flex', alignItems: 'center' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#000', color: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '20px', marginRight: '15px' }}>🤖</div>
-          <div><h3 style={{ margin: 0, fontSize: '18px', color: '#333' }}>AI Monitoring Assistant</h3><p style={{ margin: 0, fontSize: '13px', color: '#888', marginTop: '4px' }}>실시간 서버 리소스 분석 중</p></div>
+        <header style={{ padding: '20px', background: '#ffffff', borderBottom: '1px solid #d8d8d8', display: 'flex', alignItems: 'center' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(20,110,245,0.1)', color: '#146ef5', border: '1px solid rgba(20,110,245,0.22)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '20px', marginRight: '15px' }}>🤖</div>
+          <div><h3 style={{ margin: 0, fontSize: '18px', color: '#080808' }}>모니또링 AI Assistant</h3><p style={{ margin: 0, fontSize: '13px', color: '#5a5a5a', marginTop: '4px' }}>실시간 서버 리소스 분석 중</p></div>
         </header>
 
-        <div style={{ padding: '15px 20px', background: '#fafbfc', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: '10px', overflowX: 'auto' }}>
+        <div style={{ padding: '15px 20px', background: '#f8fbff', borderBottom: '1px solid rgba(20,110,245,0.14)', display: 'flex', gap: '10px', overflowX: 'auto' }}>
           {EXAMPLE_QUESTIONS.map(q => (
-            <button key={q} onClick={() => handleSend(q)} style={{ padding: '8px 16px', fontSize: '13px', background: '#fff', color: '#555', border: '1px solid #e1e4e8', borderRadius: '20px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <button key={q} onClick={() => handleSend(q)} style={{ padding: '8px 16px', fontSize: '13px', background: '#fff', color: '#363636', border: '1px solid #d8d8d8', borderRadius: '8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {q}
             </button>
           ))}
@@ -87,9 +87,9 @@ export default function Chatbot() {
               <div style={{ display: 'flex', alignItems: 'flex-end', maxWidth: '85%' }}>
                 {msg.role === 'assistant' && <div style={{ fontSize: '24px', marginRight: '10px', marginBottom: '5px' }}>🤖</div>}
                 <div style={{ 
-                  padding: '14px 18px', borderRadius: '16px', fontSize: '15px', lineHeight: '1.6', wordBreak: 'break-word',
-                  background: msg.role === 'user' ? '#1a1a1a' : '#f4f6f8', color: msg.role === 'user' ? '#ffffff' : '#24292e',
-                  borderTopRightRadius: msg.role === 'user' ? '4px' : '16px', borderTopLeftRadius: msg.role === 'assistant' ? '4px' : '16px'
+                  padding: '14px 18px', borderRadius: '8px', fontSize: '15px', lineHeight: '1.6', wordBreak: 'break-word',
+                  background: msg.role === 'user' ? '#146ef5' : '#f8fbff', color: msg.role === 'user' ? '#ffffff' : '#080808',
+                  border: msg.role === 'user' ? '1px solid #146ef5' : '1px solid rgba(20,110,245,0.14)'
                 }}>{msg.content}</div>
               </div>
               <div style={{ fontSize: '11px', color: '#adb5bd', marginTop: '6px', marginLeft: msg.role === 'assistant' ? '40px' : '0', marginRight: msg.role === 'user' ? '10px' : '0' }}>
@@ -97,13 +97,13 @@ export default function Chatbot() {
               </div>
             </div>
           ))}
-          {loading && <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px' }}><div style={{ fontSize: '20px', marginRight: '10px' }}>🤖</div><div style={{ color: '#888', fontSize: '14px', background: '#f4f6f8', padding: '12px 18px', borderRadius: '16px 16px 16px 4px' }}>분석 중...</div></div>}
+          {loading && <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px' }}><div style={{ fontSize: '20px', marginRight: '10px' }}>🤖</div><div style={{ color: '#5a5a5a', fontSize: '14px', background: '#f8fbff', border: '1px solid rgba(20,110,245,0.14)', padding: '12px 18px', borderRadius: '8px' }}>분석 중...</div></div>}
         </div>
 
-        <div className="chatInputArea" style={{ padding: '20px', background: '#fff', borderTop: '1px solid #eaeaea' }}>
-          <div style={{ display: 'flex', gap: '12px', background: '#f4f6f8', padding: '8px', borderRadius: '12px', border: '1px solid #e1e4e8' }}>
+        <div className="chatInputArea" style={{ padding: '20px', background: '#fff', borderTop: '1px solid #d8d8d8' }}>
+          <div style={{ display: 'flex', gap: '12px', background: '#f8fbff', padding: '8px', borderRadius: '8px', border: '1px solid rgba(20,110,245,0.14)' }}>
             <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="메시지 입력..." style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', outline: 'none', fontSize: '15px' }} />
-            <button onClick={() => handleSend()} disabled={loading} style={{ padding: '0 24px', background: '#1a1a1a', color: '#fff', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>전송</button>
+            <button onClick={() => handleSend()} disabled={loading} style={{ padding: '0 24px', background: '#146ef5', color: '#fff', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>전송</button>
           </div>
         </div>
       </div>
