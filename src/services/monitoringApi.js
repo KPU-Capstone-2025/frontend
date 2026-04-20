@@ -37,9 +37,9 @@ export const getAgentDestination = (id) => request(`/company/agent/${id}`); // �
 
 // 2. 리소스 대시보드 (DashboardController는 ApiResponse 래퍼를 사용함)
 export const getHostOverview = (id, hostName) => request(`/dashboard/${id}/host`, { query: hostName ? { hostName } : {} }).then(r => r.result);
-export const getContainers = (id) => request(`/dashboard/container/${id}`).then(r => r.containers || []);
+export const getContainers = (id, hostName) => request(`/dashboard/container/${id}`, { query: hostName ? { hostName } : {} }).then(r => r.containers || []);
 export const getContainerMetrics = (id, name) => request(`/dashboard/${id}/container/${name}/metrics`).then(r => r.result);
-export const getMonthlyMetrics = (id, params) => request(`/dashboard/${id}/metrics/monthly`, { query: params }).then(r => r.result);
+export const getMonthlyMetrics = (id, params, hostName) => request(`/dashboard/${id}/metrics/monthly`, { query: hostName ? { ...params, hostName } : params }).then(r => r.result);
 
 // 3. 로그 및 AI 분석 (Loki 관련)
 export const getLogs = (id, params) => request(`/dashboard/${id}/logs`, { query: params }).then(r => r.result || []);

@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
-import { getAnomaly, getContainerMetrics, getContainers, getDailyAlertSummary, getDiscoveredHosts, getHostOverview, getMonthlyMetrics, getPrediction } from "../../services/monitoringApi.js";
+import { getAnomaly, getContainerMetrics, getContainers, getDailyAlertSummary, getHostOverview, getMonthlyMetrics, getPrediction, getServers } from "../../services/monitoringApi.js";
 import { getStoredSession } from "../../services/authStorage.js";
 
 /**
@@ -27,7 +27,7 @@ function createInitialSnapshot() {
 
 function getRuntime(companyId) {
   if (!dashboardRuntimeStore.has(companyId)) {
-    dashboardRuntimeStore.set(companyId, { snapshot: createInitialSnapshot(), listeners: new Set(), started: false, hostTimer: null, containerTimer: null });
+    dashboardRuntimeStore.set(companyId, { snapshot: createInitialSnapshot(), listeners: new Set(), started: false, hostTimer: null, containerTimer: null, selectedHost: null });
   }
   return dashboardRuntimeStore.get(companyId);
 }
@@ -191,10 +191,17 @@ function calcTrend(series = []) {
 }
 
 async function fetchHostAndContainers(companyId) {
-  const [hostRes, containersRes] = await Promise.all([
-    getHostOverview(companyId),
-    getContainers(companyId)
-  ]);
+  const selectedHost = getRuntime(companyId).selectedHost;
+  let hostRes, containersRes;
+  try {
+    [hostRes, containersRes] = await Promise.all([
+      getHostOverview(companyId, selectedHost),
+      getContainers(companyId, selectedHost)
+    ]);
+  } catch (e) {
+    patchRuntimeSnapshot(companyId, (prev) => ({ ...prev, loading: false }));
+    return;
+  }
 
   patchRuntimeSnapshot(companyId, (prev) => {
     const now = Date.now();
@@ -204,7 +211,7 @@ async function fetchHostAndContainers(companyId) {
       cpu: [...prevHostMetrics.cpu, { t: now, v: hostRes?.cpuUsage || 0 }].slice(-MAX_DATA_POINTS),
       memory: [...prevHostMetrics.memory, { t: now, v: hostRes?.memoryUsage || 0 }].slice(-MAX_DATA_POINTS),
       disk: [...prevHostMetrics.disk, { t: now, v: hostRes?.diskUsage || 0 }].slice(-MAX_DATA_POINTS),
-      network: [...prevHostMetrics.network, { t: now, v: hostRes?.networkTraffic || 0 }].slice(-MAX_DATA_POINTS)
+      network: [...prevHostMetrics.network, { t: now, v: (hostRes?.networkTraffic || 0) / (1024 * 1024) }].slice(-MAX_DATA_POINTS)
     };
 
     return {
@@ -521,7 +528,19 @@ export default function Dashboard() {
   const [alertModal, setAlertModal] = useState(null);
   const [alertModalLoading, setAlertModalLoading] = useState(false);
   const [selectedHost, setSelectedHost] = useState(null);
-  const [discoveredHosts, setDiscoveredHosts] = useState([]);
+  const changeHost = (host) => {
+    setSelectedHost(host);
+    if (companyId) {
+      getRuntime(companyId).selectedHost = host;
+      patchRuntimeSnapshot(companyId, (prev) => ({
+        ...prev,
+        loading: true,
+        hostData: null,
+      }));
+      fetchHostAndContainers(companyId);
+    }
+  };
+  const [registeredServers, setRegisteredServers] = useState([]);
   const [anomaly, setAnomaly] = useState(null);
   const [prediction, setPrediction] = useState(null);
 
@@ -534,9 +553,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!companyId) return;
-    getDiscoveredHosts(companyId).then(hosts => {
-      setDiscoveredHosts(hosts || []);
-      if (hosts?.length > 0 && !selectedHost) setSelectedHost(null);
+    getServers(companyId).then(servers => {
+      setRegisteredServers(Array.isArray(servers) ? servers : []);
     }).catch(() => {});
   }, [companyId]);
 
@@ -568,7 +586,7 @@ export default function Dashboard() {
       try {
         const year = monthDate.getFullYear();
         const month = monthDate.getMonth() + 1;
-        const result = await getMonthlyMetrics(companyId, { year, month });
+        const result = await getMonthlyMetrics(companyId, { year, month }, selectedHost);
         if (cancelled) return;
         setMonthlyData(result);
         const todayKey = toDateKey(new Date());
@@ -585,7 +603,7 @@ export default function Dashboard() {
     }
     loadMonthlyMetrics();
     return () => { cancelled = true; };
-  }, [companyId, monthDate]);
+  }, [companyId, monthDate, selectedHost]);
 
   const containerMetrics = containerMetricsById[selectedContainerId] || null;
   const loadingMetrics = !!loadingMetricsById[selectedContainerId];
@@ -607,17 +625,17 @@ export default function Dashboard() {
         <div className="unifiedLiveBadge">{polling ? "갱신 중..." : "실시간 수집 중"}</div>
       </div>
 
-      {discoveredHosts.length > 0 && (
+      {registeredServers.length > 0 && (
         <div style={{ background: "#fff", border: "1px solid #e8e8e8", borderRadius: 10, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: "#555" }}>서버 선택</span>
-          <button onClick={() => setSelectedHost(null)}
+          <button onClick={() => changeHost(null)}
             style={{ padding: "6px 16px", borderRadius: 20, border: "1px solid", fontSize: 13, cursor: "pointer", background: !selectedHost ? "#146ef5" : "#fff", color: !selectedHost ? "#fff" : "#555", borderColor: !selectedHost ? "#146ef5" : "#d8d8d8" }}>
             전체
           </button>
-          {discoveredHosts.map(h => (
-            <button key={h} onClick={() => setSelectedHost(h)}
-              style={{ padding: "6px 16px", borderRadius: 20, border: "1px solid", fontSize: 13, cursor: "pointer", background: selectedHost === h ? "#146ef5" : "#fff", color: selectedHost === h ? "#fff" : "#555", borderColor: selectedHost === h ? "#146ef5" : "#d8d8d8" }}>
-              🖥️ {h}
+          {registeredServers.map(s => (
+            <button key={s.id} onClick={() => changeHost(s.name)}
+              style={{ padding: "6px 16px", borderRadius: 20, border: "1px solid", fontSize: 13, cursor: "pointer", background: selectedHost === s.name ? "#146ef5" : "#fff", color: selectedHost === s.name ? "#fff" : "#555", borderColor: selectedHost === s.name ? "#146ef5" : "#d8d8d8" }}>
+              🖥️ {s.name}
             </button>
           ))}
         </div>
@@ -736,13 +754,13 @@ export default function Dashboard() {
           <MetricCard title="CPU 사용률" value={formatValue(lastOf(hostMetrics.cpu), "%")} sub={hostCpuDanger ? "위험" : "정상"} danger={hostCpuDanger} />
           <MetricCard title="메모리 사용량" value={formatValue(lastOf(hostMetrics.memory), "%")} sub="물리적 점유" />
           <MetricCard title="디스크 사용량" value={formatValue(lastOf(hostMetrics.disk), "%")} sub="전체 용량 대비" />
-          <MetricCard title="네트워크" value={formatValue(lastOf(hostMetrics.network), "KB/s")} sub="In/Out 합계" />
+          <MetricCard title="네트워크" value={formatValue(lastOf(hostMetrics.network), "MB/s")} sub="In/Out 합계" />
         </div>
         <div className="chartGrid chartGrid--host">
           <LiveChartCard title="CPU 사용률" currentValue={lastOf(hostMetrics.cpu)} unit="%" rawSeries={hostMetrics.cpu} danger={hostCpuDanger} />
           <LiveChartCard title="메모리 사용량" currentValue={lastOf(hostMetrics.memory)} unit="%" rawSeries={hostMetrics.memory} />
           <LiveChartCard title="디스크 사용량" currentValue={lastOf(hostMetrics.disk)} unit="%" rawSeries={hostMetrics.disk} />
-          <LiveChartCard title="네트워크 트래픽" currentValue={lastOf(hostMetrics.network)} unit="KB/s" rawSeries={hostMetrics.network} />
+          <LiveChartCard title="네트워크 트래픽" currentValue={lastOf(hostMetrics.network)} unit="MB/s" rawSeries={hostMetrics.network} />
         </div>
       </section>
 
@@ -770,7 +788,7 @@ export default function Dashboard() {
               <div className="chartGrid chartGrid--container">
                 <LiveChartCard title="컨테이너 CPU" currentValue={lastOf(containerMetrics?.metrics?.cpu)} unit="%" rawSeries={containerMetrics?.metrics?.cpu || []} danger={containerCpuDanger} sensitivity="high" />
                 <LiveChartCard title="컨테이너 메모리" currentValue={lastOf(containerMetrics?.metrics?.memory)} unit="%" rawSeries={containerMetrics?.metrics?.memory || []} sensitivity="high" />
-                <LiveChartCard title="컨테이너 네트워크" currentValue={lastOf(containerMetrics?.metrics?.network)} unit="KB/s" rawSeries={containerMetrics?.metrics?.network || []} sensitivity="high" />
+                <LiveChartCard title="컨테이너 네트워크" currentValue={lastOf(containerMetrics?.metrics?.network)} unit="MB/s" rawSeries={containerMetrics?.metrics?.network || []} sensitivity="high" />
               </div>
             ) : <div className="unifiedSkeleton" style={{ height: 200 }} />}
           </div>

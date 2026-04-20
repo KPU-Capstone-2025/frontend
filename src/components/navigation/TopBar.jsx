@@ -1,14 +1,31 @@
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   buildCompanyDisplayName,
   clearStoredSession,
   getStoredSession,
 } from "../../services/authStorage.js";
 
-export default function TopBar({ title, desc }) {
+const TOP_NAV_ITEMS = [
+  { to: "/dashboard", label: "대시보드" },
+  { to: "/servers", label: "서버 관리" },
+  { to: "/logs", label: "로그 분석" },
+  { to: "/chatbot", label: "챗봇" },
+  { to: "/alerts", label: "알림 설정" },
+  { to: "/agent-install", label: "에이전트 설치" },
+];
+
+export default function TopBar() {
   const navigate = useNavigate();
   const session = getStoredSession();
   const companyName = buildCompanyDisplayName(session);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem("monittoring_theme") || "light");
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("monittoring_theme", theme);
+  }, [theme]);
 
   const handleLogout = () => {
     clearStoredSession();
@@ -18,26 +35,35 @@ export default function TopBar({ title, desc }) {
   return (
     <header className="topBar">
       <div className="topBar__left">
-        <div className="pageTitle">
-          <h1 className="pageTitle__h">{title}</h1>
-          {desc ? <p className="pageTitle__p">{desc}</p> : null}
-        </div>
+        <img src="/logo.png" alt="모니또링" className="topBar__logo" draggable="false" />
       </div>
 
+      <nav className="topNav" aria-label="주요 메뉴">
+        {TOP_NAV_ITEMS.map((item) => (
+          <NavLink key={item.to} to={item.to} title={item.label} aria-label={item.label} className={({ isActive }) => `topNav__item ${isActive ? "is-active" : ""}`}>
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+
       <div className="topBar__right">
-        <div className="topBarCompany" title="현재 로그인 회사">
-          <span className="topBarCompany__label">현재 회사</span>
-          <span className="topBarCompany__name">{companyName}</span>
-        </div>
-
-        <div className="topBarStatus" title="실시간 수집 상태">
-          <span className="topBarStatus__dot" />
-          <span>실시간 수집 연동</span>
-        </div>
-
-        <button className="logoutBtn" type="button" onClick={handleLogout}>
-          로그아웃
+        <button className="profileButton" type="button" onClick={() => setProfileOpen((prev) => !prev)} aria-label="프로필 메뉴">
+          <span className="profileButton__avatar">{companyName?.[0] || "M"}</span>
         </button>
+        {profileOpen ? (
+          <div className="profileMenu">
+            <div className="profileMenu__company">
+              <span>현재 회사</span>
+              <strong>{companyName}</strong>
+            </div>
+            <button className="profileMenu__item" type="button" onClick={() => setTheme((prev) => prev === "dark" ? "light" : "dark")}>
+              {theme === "dark" ? "라이트 모드" : "다크 모드"}
+            </button>
+            <button className="profileMenu__item is-danger" type="button" onClick={handleLogout}>
+              로그아웃
+            </button>
+          </div>
+        ) : null}
       </div>
     </header>
   );
