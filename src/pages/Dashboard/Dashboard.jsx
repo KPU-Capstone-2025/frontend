@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
-import { getContainerMetrics, getContainers, getDailyAlertSummary, getHostOverview, getMonthlyMetrics } from "../../services/monitoringApi.js";
+import { getAnomaly, getContainerMetrics, getContainers, getDailyAlertSummary, getDiscoveredHosts, getHostOverview, getMonthlyMetrics, getPrediction } from "../../services/monitoringApi.js";
 import { getStoredSession } from "../../services/authStorage.js";
 
 /**
@@ -520,6 +520,10 @@ export default function Dashboard() {
   const [selectedMonthlyDate, setSelectedMonthlyDate] = useState(() => toDateKey(new Date()));
   const [alertModal, setAlertModal] = useState(null);
   const [alertModalLoading, setAlertModalLoading] = useState(false);
+  const [selectedHost, setSelectedHost] = useState(null);
+  const [discoveredHosts, setDiscoveredHosts] = useState([]);
+  const [anomaly, setAnomaly] = useState(null);
+  const [prediction, setPrediction] = useState(null);
 
   useEffect(() => {
     if (!companyId) { setView(createInitialSnapshot()); return; }
@@ -527,6 +531,25 @@ export default function Dashboard() {
     ensureDashboardStarted(companyId);
     return () => unsubscribe();
   }, [companyId]);
+
+  useEffect(() => {
+    if (!companyId) return;
+    getDiscoveredHosts(companyId).then(hosts => {
+      setDiscoveredHosts(hosts || []);
+      if (hosts?.length > 0 && !selectedHost) setSelectedHost(null);
+    }).catch(() => {});
+  }, [companyId]);
+
+  useEffect(() => {
+    if (!companyId) return;
+    const load = () => {
+      getAnomaly(companyId, selectedHost).then(setAnomaly).catch(() => {});
+      getPrediction(companyId, selectedHost).then(setPrediction).catch(() => {});
+    };
+    load();
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
+  }, [companyId, selectedHost]);
 
   const { loading, polling, hostData, containers, selectedContainerId, containerMetricsById, loadingMetricsById } = view;
 
@@ -583,6 +606,59 @@ export default function Dashboard() {
         <div><h2 className="unifiedIntro__title">모니또링 대시보드</h2><p className="unifiedIntro__desc">서버와 컨테이너의 실시간 리소스 변화를 확인합니다.</p></div>
         <div className="unifiedLiveBadge">{polling ? "갱신 중..." : "실시간 수집 중"}</div>
       </div>
+
+      {discoveredHosts.length > 0 && (
+        <div style={{ background: "#fff", border: "1px solid #e8e8e8", borderRadius: 10, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "#555" }}>서버 선택</span>
+          <button onClick={() => setSelectedHost(null)}
+            style={{ padding: "6px 16px", borderRadius: 20, border: "1px solid", fontSize: 13, cursor: "pointer", background: !selectedHost ? "#146ef5" : "#fff", color: !selectedHost ? "#fff" : "#555", borderColor: !selectedHost ? "#146ef5" : "#d8d8d8" }}>
+            전체
+          </button>
+          {discoveredHosts.map(h => (
+            <button key={h} onClick={() => setSelectedHost(h)}
+              style={{ padding: "6px 16px", borderRadius: 20, border: "1px solid", fontSize: 13, cursor: "pointer", background: selectedHost === h ? "#146ef5" : "#fff", color: selectedHost === h ? "#fff" : "#555", borderColor: selectedHost === h ? "#146ef5" : "#d8d8d8" }}>
+              🖥️ {h}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {(anomaly?.anomalies?.some(a => a.isAnomaly) || prediction?.predictions?.some(p => p.hoursUntilBreach != null)) && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+          {anomaly?.anomalies?.some(a => a.isAnomaly) && (
+            <div style={{ background: "#fff", border: "1px solid #ffccc7", borderRadius: 10, padding: 20 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#ff4d4f", marginBottom: 12 }}>⚠️ 이상 감지</div>
+              {anomaly.anomalies.filter(a => a.isAnomaly).map(a => (
+                <div key={a.metric} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f5f5f5" }}>
+                  <span style={{ fontSize: 13 }}>{a.metric.replace("system_", "").replace("_usage", "").toUpperCase()}</span>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{a.current}%</span>
+                    <span style={{ fontSize: 11, background: a.severity === "critical" ? "#ff4d4f" : "#faad14", color: "#fff", padding: "2px 8px", borderRadius: 10 }}>
+                      {a.severity === "critical" ? "위험" : "주의"} (평균 {a.mean}%)
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {prediction?.predictions?.some(p => p.hoursUntilBreach != null) && (
+            <div style={{ background: "#fff", border: "1px solid #ffe58f", borderRadius: 10, padding: 20 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "#faad14", marginBottom: 12 }}>📈 임계치 초과 예측</div>
+              {prediction.predictions.filter(p => p.hoursUntilBreach != null).map(p => (
+                <div key={p.metric} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f5f5f5" }}>
+                  <span style={{ fontSize: 13 }}>{p.metric.replace("system_", "").replace("_usage", "").toUpperCase()}</span>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ fontSize: 13 }}>{p.currentValue}% → {p.threshold}%</span>
+                    <span style={{ fontSize: 11, background: p.hoursUntilBreach < 6 ? "#ff4d4f" : "#faad14", color: "#fff", padding: "2px 8px", borderRadius: 10 }}>
+                      {p.hoursUntilBreach < 1 ? `${Math.round(p.hoursUntilBreach * 60)}분 후` : `${p.hoursUntilBreach.toFixed(1)}시간 후`}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <MonthlyCalendar
         companyId={companyId}

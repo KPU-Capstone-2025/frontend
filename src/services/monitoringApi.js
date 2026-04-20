@@ -36,7 +36,7 @@ export const loginCompany = (creds) => request("/company/login", { method: "POST
 export const getAgentDestination = (id) => request(`/company/agent/${id}`); // 🌟 .result 제거함
 
 // 2. 리소스 대시보드 (DashboardController는 ApiResponse 래퍼를 사용함)
-export const getHostOverview = (id) => request(`/dashboard/${id}/host`).then(r => r.result);
+export const getHostOverview = (id, hostName) => request(`/dashboard/${id}/host`, { query: hostName ? { hostName } : {} }).then(r => r.result);
 export const getContainers = (id) => request(`/dashboard/container/${id}`).then(r => r.containers || []);
 export const getContainerMetrics = (id, name) => request(`/dashboard/${id}/container/${name}/metrics`).then(r => r.result);
 export const getMonthlyMetrics = (id, params) => request(`/dashboard/${id}/metrics/monthly`, { query: params }).then(r => r.result);
@@ -47,6 +47,16 @@ export const analyzeLog = (logContent) => request(`/dashboard/logs/analyze`, { m
 
 // 3-1. 날짜별 위험 알림 요약
 export const getDailyAlertSummary = (id, date) => request(`/dashboard/${id}/alerts/daily`, { query: { date } });
+
+// 3-2. 멀티서버 / 이상감지 / 예측
+export const getDiscoveredHosts = (id) => request(`/dashboard/${id}/hosts`);
+export const getAnomaly = (id, hostName) => request(`/dashboard/${id}/anomaly`, { query: hostName ? { hostName } : {} });
+export const getPrediction = (id, hostName) => request(`/dashboard/${id}/prediction`, { query: hostName ? { hostName } : {} });
+
+// 5. 서버 관리
+export const getServers = (companyId) => request(`/servers/${companyId}`);
+export const registerServer = (companyId, data) => request(`/servers/${companyId}`, { method: "POST", body: data });
+export const deleteServer = (companyId, serverId) => request(`/servers/${companyId}/${serverId}`, { method: "DELETE" });
 
 // 4. 알람 설정 및 챗봇
 export const updateAlertRules = (data) => request("/rules/update", { method: "POST", body: data });
