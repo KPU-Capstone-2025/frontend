@@ -17,17 +17,18 @@ export default function SideNav({ open, onClose }) {
           </div>
 
           <div className="brand__txt">
-            <div className="brand__title">Monittoring</div>
-            <div className="brand__sub">AI Monitoring</div>
+            <div className="brand__title">모니또링</div>
+            <div className="brand__sub">Blue AI Monitoring</div>
           </div>
         </div>
 
         <nav className="navGroup">
-          <NavItem to="/agent-install" icon="🧩" label="에이전트 설치" />
-          <NavItem to="/dashboard" icon="🖥️" label="대시보드" />
-          <NavItem to="/logs" icon="📄" label="로그 분석" />
-          <NavItem to="/chatbot" icon="💬" label="챗봇" />
-          <NavItem to="/alerts" icon="🔔" label="알림 설정" />
+          <NavItem to="/dashboard" icon="🖥️" label="대시보드" onClick={onClose} />
+          <NavItem to="/servers" icon="🗄️" label="서버 관리" onClick={onClose} />
+          <NavItem to="/logs" icon="📄" label="로그 분석" onClick={onClose} />
+          <NavItem to="/chatbot" icon="💬" label="챗봇" onClick={onClose} />
+          <NavItem to="/alerts" icon="🔔" label="알림 설정" onClick={onClose} />
+          <NavItem to="/agent-install" icon="🧩" label="에이전트 설치" onClick={onClose} />
         </nav>
 
         <div className="navFooter">

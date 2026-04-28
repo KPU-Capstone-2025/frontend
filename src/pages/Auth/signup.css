@@ -1,44 +1,53 @@
 .signupForm {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  margin-top: 18px;
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 .fieldLabel {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  color: #101828;
+  color: #b3b3b3;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-.req {
-  color: #2563eb;
-}
+.req { color: #4d84f5; }
 
 .signupForm input,
 .signupForm select {
   width: 100%;
-  height: 44px;
-  padding: 0 14px;
-  border: 1px solid #d0d5dd;
-  border-radius: 12px;
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 9999px;
   font-size: 14px;
-  color: #101828;
-  background: #f8fafc;
+  color: #e8edf5;
+  background: rgba(255,255,255,0.05);
   box-sizing: border-box;
   outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+
+.signupForm input::placeholder { color: #7b8ea6; }
 
 .signupForm input:focus,
 .signupForm select:focus {
-  border-color: #2563eb;
-  background: #ffffff;
+  border-color: rgba(77,132,245,0.6);
+  background: rgba(255,255,255,0.07);
+  box-shadow: 0 0 0 3px rgba(77,132,245,0.15);
+}
+
+.signupForm select {
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .birthRow {
@@ -48,80 +57,52 @@
   width: 100%;
 }
 
-.birthRow input {
-  min-width: 0;
-  width: 100%;
-}
+.birthRow input { min-width: 0; width: 100%; }
 
-.hint {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: #667085;
-}
-
-.okText {
-  margin: 2px 0 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: #16a34a;
-}
-
-.errorText {
-  margin: 2px 0 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: #dc2626;
-}
+.hint   { margin: 2px 0 0; font-size: 12px; color: #7b8ea6; }
+.okText { margin: 2px 0 0; font-size: 12px; font-weight: 700; color: #4ade80; }
+.errorText { margin: 2px 0 0; font-size: 12px; font-weight: 700; color: #f3727f; }
 
 .submitError {
   padding: 12px 14px;
-  border-radius: 12px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #b42318;
+  border-radius: 8px;
+  background: rgba(243,114,127,0.1);
+  border: 1px solid rgba(243,114,127,0.22);
+  color: #f3727f;
   font-size: 13px;
   font-weight: 700;
 }
 
 .agreeBox {
   margin-top: 4px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid rgba(255,255,255,0.07);
 }
 
-.agreeList {
-  display: flex;
-  flex-direction: column;
-}
+.agreeList { display: flex; flex-direction: column; }
 
 .checkRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 56px;
-  border-bottom: 1px solid #e5e7eb;
-  font-size: 14px;
-  color: #101828;
+  min-height: 52px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  font-size: 13px;
+  color: #e8edf5;
 }
 
 .checkRow input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   padding: 0;
   margin: 0;
-  accent-color: #2563eb;
+  accent-color: #4d84f5;
   border-radius: 4px;
   flex: 0 0 auto;
 }
 
-.checkRow--all {
-  font-weight: 700;
-}
-
-.checkRow--sub {
-  padding-left: 18px;
-  color: #475467;
-}
+.checkRow--all  { font-weight: 700; }
+.checkRow--sub  { padding-left: 18px; color: #7b8ea6; }
 
 @media (max-width: 640px) {
   .birthRow {

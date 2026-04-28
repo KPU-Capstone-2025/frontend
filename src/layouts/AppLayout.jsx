@@ -1,5 +1,4 @@
 import { Outlet, useLocation, Navigate } from "react-router-dom";
-import SideNav from "../components/navigation/SideNav.jsx";
 import TopBar from "../components/navigation/TopBar.jsx";
 import { getStoredSession } from "../services/authStorage.js";
 import "./layout.css";
@@ -7,7 +6,7 @@ import "./layout.css";
 const TITLE_MAP = {
   "/agent-install": {
     title: "에이전트 설치",
-    desc: "모니터링 에이전트 설치 방법을 안내합니다.",
+    desc: "모니또링 에이전트 설치 방법을 안내합니다.",
   },
   "/dashboard": {
     title: "대시보드",
@@ -42,10 +41,6 @@ export default function AppLayout() {
 
   return (
     <div className="appShell">
-      <aside className="appShell__nav">
-        <SideNav />
-      </aside>
-
       <div className="appShell__main">
         <TopBar title={meta.title} desc={meta.desc} />
         <main className="appShell__content">

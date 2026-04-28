@@ -25,7 +25,8 @@ export default function Login() {
         id: session.id,
         name: session.name,
         email: email,
-        monitoringId: session.monitoringId 
+        monitoringId: session.monitoringId,
+        token: session.token
       });
 
       navigate("/dashboard", { replace: true });

@@ -64,45 +64,45 @@ export default function Chatbot() {
 
   return (
     <div className="chatbotPage" style={{ display: 'flex', justifyContent: 'center', background: 'transparent', height: 'calc(100vh - 60px)', padding: '4px 0 24px' }}>
-      <div className="chatbotContainer" style={{ 
-        width: '100%', maxWidth: '900px', height: '100%', display: 'flex', flexDirection: 'column', 
-        background: '#fff', borderRadius: '8px', boxShadow: 'var(--shadow)', border: '1px solid #d8d8d8', overflow: 'hidden'
+      <div className="chatbotContainer" style={{
+        width: '100%', maxWidth: '900px', height: '100%', display: 'flex', flexDirection: 'column',
+        background: 'var(--surface)', borderRadius: '8px', boxShadow: 'var(--shadow)', border: '1px solid var(--border)', overflow: 'hidden'
       }}>
-        <header style={{ padding: '20px', background: '#ffffff', borderBottom: '1px solid #d8d8d8', display: 'flex', alignItems: 'center' }}>
+        <header style={{ padding: '20px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(20,110,245,0.1)', color: '#146ef5', border: '1px solid rgba(20,110,245,0.22)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '20px', marginRight: '15px' }}>🤖</div>
-          <div><h3 style={{ margin: 0, fontSize: '18px', color: '#080808' }}>모니또링 AI Assistant</h3><p style={{ margin: 0, fontSize: '13px', color: '#5a5a5a', marginTop: '4px' }}>실시간 서버 리소스 분석 중</p></div>
+          <div><h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text)' }}>모니또링 AI Assistant</h3><p style={{ margin: 0, fontSize: '13px', color: 'var(--muted)', marginTop: '4px' }}>실시간 서버 리소스 분석 중</p></div>
         </header>
 
-        <div style={{ padding: '15px 20px', background: '#f8fbff', borderBottom: '1px solid rgba(20,110,245,0.14)', display: 'flex', gap: '10px', overflowX: 'auto' }}>
+        <div style={{ padding: '15px 20px', background: 'var(--surface2)', borderBottom: '1px solid var(--border)', display: 'flex', gap: '10px', overflowX: 'auto' }}>
           {EXAMPLE_QUESTIONS.map(q => (
-            <button key={q} onClick={() => handleSend(q)} style={{ padding: '8px 16px', fontSize: '13px', background: '#fff', color: '#363636', border: '1px solid #d8d8d8', borderRadius: '8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <button key={q} onClick={() => handleSend(q)} style={{ padding: '8px 16px', fontSize: '13px', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {q}
             </button>
           ))}
         </div>
 
-        <div className="chatBody" ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '20px', background: '#ffffff' }}>
+        <div className="chatBody" ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '20px', background: 'var(--surface)' }}>
           {messages.map((msg, i) => (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'flex-end', maxWidth: '85%' }}>
                 {msg.role === 'assistant' && <div style={{ fontSize: '24px', marginRight: '10px', marginBottom: '5px' }}>🤖</div>}
-                <div style={{ 
+                <div style={{
                   padding: '14px 18px', borderRadius: '8px', fontSize: '15px', lineHeight: '1.6', wordBreak: 'break-word',
-                  background: msg.role === 'user' ? '#146ef5' : '#f8fbff', color: msg.role === 'user' ? '#ffffff' : '#080808',
-                  border: msg.role === 'user' ? '1px solid #146ef5' : '1px solid rgba(20,110,245,0.14)'
+                  background: msg.role === 'user' ? '#146ef5' : 'var(--surface2)', color: msg.role === 'user' ? '#ffffff' : 'var(--text)',
+                  border: msg.role === 'user' ? '1px solid #146ef5' : '1px solid var(--border)'
                 }}>{msg.content}</div>
               </div>
-              <div style={{ fontSize: '11px', color: '#adb5bd', marginTop: '6px', marginLeft: msg.role === 'assistant' ? '40px' : '0', marginRight: msg.role === 'user' ? '10px' : '0' }}>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px', marginLeft: msg.role === 'assistant' ? '40px' : '0', marginRight: msg.role === 'user' ? '10px' : '0' }}>
                 {msg.time}
               </div>
             </div>
           ))}
-          {loading && <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px' }}><div style={{ fontSize: '20px', marginRight: '10px' }}>🤖</div><div style={{ color: '#5a5a5a', fontSize: '14px', background: '#f8fbff', border: '1px solid rgba(20,110,245,0.14)', padding: '12px 18px', borderRadius: '8px' }}>분석 중...</div></div>}
+          {loading && <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px' }}><div style={{ fontSize: '20px', marginRight: '10px' }}>🤖</div><div style={{ color: 'var(--muted)', fontSize: '14px', background: 'var(--surface2)', border: '1px solid var(--border)', padding: '12px 18px', borderRadius: '8px' }}>분석 중...</div></div>}
         </div>
 
-        <div className="chatInputArea" style={{ padding: '20px', background: '#fff', borderTop: '1px solid #d8d8d8' }}>
-          <div style={{ display: 'flex', gap: '12px', background: '#f8fbff', padding: '8px', borderRadius: '8px', border: '1px solid rgba(20,110,245,0.14)' }}>
-            <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="메시지 입력..." style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', outline: 'none', fontSize: '15px' }} />
+        <div className="chatInputArea" style={{ padding: '20px', background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', gap: '12px', background: 'var(--surface2)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="메시지 입력..." style={{ flex: 1, padding: '12px', background: 'transparent', border: 'none', outline: 'none', fontSize: '15px', color: 'var(--text)' }} />
             <button onClick={() => handleSend()} disabled={loading} style={{ padding: '0 24px', background: '#146ef5', color: '#fff', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>전송</button>
           </div>
         </div>

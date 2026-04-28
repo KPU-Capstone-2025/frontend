@@ -8,7 +8,7 @@ export default function Signup() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    company: "", email: "", pw: "", pw2: "", companyIp: "",
+    company: "", email: "", pw: "", pw2: "",
   });
 
   const [agree, setAgree] = useState({
@@ -43,7 +43,6 @@ export default function Signup() {
     if (!form.pw) return "비밀번호를 입력해주세요.";
     if (!form.pw2) return "비밀번호 확인을 입력해주세요.";
     if (form.pw !== form.pw2) return "비밀번호가 일치하지 않습니다.";
-    if (!form.companyIp.trim()) return "회사 IP를 입력해주세요.";
     if (!requiredOk) return "필수 약관에 동의해주세요.";
     return "";
   };
@@ -58,7 +57,7 @@ export default function Signup() {
       setSubmitting(true);
       setSubmitError("");
       await registerCompany({
-        name: form.company.trim(), email: form.email.trim(), password: form.pw, ip: form.companyIp.trim(), phone: "",
+        name: form.company.trim(), email: form.email.trim(), password: form.pw, phone: "",
       });
       alert("회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.");
       navigate("/login", { replace: true });
@@ -84,8 +83,6 @@ export default function Signup() {
               {touched.pw2 && pwMatch === true && <p className="okText">확인!</p>}
               {touched.pw2 && pwMatch === false && <p className="errorText">비밀번호가 일치하지 않습니다.</p>}
             </Field>
-            <Field label="회사 IP" required><input placeholder="예: 192.168.0.1" value={form.companyIp} onChange={(e) => setField("companyIp", e.target.value)} required /></Field>
-            
             <div className="agreeBox" style={{ marginTop: '20px' }}>
               <label className="checkRow checkRow--all"><span>전체 동의</span><input type="checkbox" checked={agree.all} onChange={(e) => onToggleAll(e.target.checked)} /></label>
               <div className="agreeList">
