@@ -20,7 +20,7 @@ export default function TopBar() {
   const session = getStoredSession();
   const companyName = buildCompanyDisplayName(session);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem("monittoring_theme") || "light");
+  const [theme, setTheme] = useState(() => localStorage.getItem("monittoring_theme") || "dark");
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
-import { getAnomaly, getContainerMetrics, getContainers, getDailyAlertSummary, getHostOverview, getMonthlyMetrics, getPrediction, getServers } from "../../services/monitoringApi.js";
+import { getAnomaly, getContainerMetrics, getContainers, getDailyAlertRaw, getDailyAlertSummary, getHostOverview, getLogs, getMonthlyMetrics, getServers } from "../../services/monitoringApi.js";
 import { getStoredSession } from "../../services/authStorage.js";
 
 /**
@@ -474,7 +474,19 @@ function MonthlyCalendar({ companyId, monthDate, monthlyData, selectedDate, onSe
                   <div className="monthlyDetail__date">{selectedDay.date}</div>
                   <div className={`monthlyDetail__status ${monthlyStatusMeta(selectedDay.worstStatus).className}`}>{monthlyStatusMeta(selectedDay.worstStatus).label}</div>
                 </div>
-                {selectedDay.alertCount > 0 ? <span className="monthlyDetail__alert">알림 {selectedDay.alertCount}</span> : null}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+                  {selectedDay.alertCount > 0 ? (
+                    <button type="button" className="monthlyDetail__alert"
+                      onClick={() => onAlertClick?.(selectedDay.date)}
+                      style={{ cursor: "pointer", border: "none", background: "transparent", padding: 0 }}>
+                      알림 {selectedDay.alertCount} 🔔
+                    </button>
+                  ) : null}
+                  <button type="button" onClick={() => onAlertClick?.(selectedDay.date)}
+                    style={{ fontSize: 11, padding: "4px 10px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface2)", color: "var(--muted)", cursor: "pointer", whiteSpace: "nowrap" }}>
+                    📋 에러 로그
+                  </button>
+                </div>
               </div>
 
               {selectedDay.hasData ? (
@@ -527,22 +539,27 @@ export default function Dashboard() {
   const [selectedMonthlyDate, setSelectedMonthlyDate] = useState(() => toDateKey(new Date()));
   const [alertModal, setAlertModal] = useState(null);
   const [alertModalLoading, setAlertModalLoading] = useState(false);
-  const [selectedHost, setSelectedHost] = useState(null);
+  const [selectedHost, setSelectedHost] = useState(() => companyId ? (getRuntime(companyId).selectedHost || null) : null);
   const changeHost = (host) => {
-    setSelectedHost(host);
     if (companyId) {
+      const isSameHost = getRuntime(companyId).selectedHost === host;
+      setSelectedHost(host);
       getRuntime(companyId).selectedHost = host;
-      patchRuntimeSnapshot(companyId, (prev) => ({
-        ...prev,
-        loading: true,
-        hostData: null,
-      }));
+      if (!isSameHost) {
+        patchRuntimeSnapshot(companyId, (prev) => ({
+          ...prev,
+          loading: true,
+          hostData: null,
+          containers: [],
+          containerMetricsById: {},
+        }));
+      }
       fetchHostAndContainers(companyId);
     }
   };
   const [registeredServers, setRegisteredServers] = useState([]);
   const [anomaly, setAnomaly] = useState(null);
-  const [prediction, setPrediction] = useState(null);
+  const [recentErrorLogs, setRecentErrorLogs] = useState([]);
 
   useEffect(() => {
     if (!companyId) { setView(createInitialSnapshot()); return; }
@@ -554,7 +571,16 @@ export default function Dashboard() {
   useEffect(() => {
     if (!companyId) return;
     getServers(companyId).then(servers => {
-      setRegisteredServers(Array.isArray(servers) ? servers : []);
+      const list = Array.isArray(servers) ? servers : [];
+      setRegisteredServers(list);
+      if (list.length > 0) {
+        const currentHost = getRuntime(companyId).selectedHost;
+        if (!currentHost) {
+          changeHost(list[0].name);
+        } else {
+          setSelectedHost(currentHost);
+        }
+      }
     }).catch(() => {});
   }, [companyId]);
 
@@ -562,7 +588,12 @@ export default function Dashboard() {
     if (!companyId) return;
     const load = () => {
       getAnomaly(companyId, selectedHost).then(setAnomaly).catch(() => {});
-      getPrediction(companyId, selectedHost).then(setPrediction).catch(() => {});
+      getLogs(companyId, { limit: 10, severity: "" }, selectedHost)
+        .then(items => {
+          const filtered = (items || []).filter(l => l.severity === "ERROR" || l.severity === "WARN");
+          setRecentErrorLogs(filtered.slice(0, 8));
+        })
+        .catch(() => {});
     };
     load();
     const id = setInterval(load, 30000);
@@ -621,62 +652,66 @@ export default function Dashboard() {
   return (
     <div className="unifiedPage">
       <div className="unifiedIntro">
-        <div><h2 className="unifiedIntro__title">모니또링 대시보드</h2><p className="unifiedIntro__desc">서버와 컨테이너의 실시간 리소스 변화를 확인합니다.</p></div>
+        <div><h2 className="unifiedIntro__title">{selectedHost ? `${selectedHost} 대시보드` : "모니또링 대시보드"}</h2><p className="unifiedIntro__desc">서버와 컨테이너의 실시간 리소스 변화를 확인합니다.</p></div>
         <div className="unifiedLiveBadge">{polling ? "갱신 중..." : "실시간 수집 중"}</div>
       </div>
 
       {registeredServers.length > 0 && (
-        <div style={{ background: "#fff", border: "1px solid #e8e8e8", borderRadius: 10, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#555" }}>서버 선택</span>
-          <button onClick={() => changeHost(null)}
-            style={{ padding: "6px 16px", borderRadius: 20, border: "1px solid", fontSize: 13, cursor: "pointer", background: !selectedHost ? "#146ef5" : "#fff", color: !selectedHost ? "#fff" : "#555", borderColor: !selectedHost ? "#146ef5" : "#d8d8d8" }}>
-            전체
-          </button>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>서버 선택</span>
           {registeredServers.map(s => (
             <button key={s.id} onClick={() => changeHost(s.name)}
-              style={{ padding: "6px 16px", borderRadius: 20, border: "1px solid", fontSize: 13, cursor: "pointer", background: selectedHost === s.name ? "#146ef5" : "#fff", color: selectedHost === s.name ? "#fff" : "#555", borderColor: selectedHost === s.name ? "#146ef5" : "#d8d8d8" }}>
+              style={{ padding: "6px 16px", borderRadius: 20, border: "1px solid", fontSize: 13, cursor: "pointer", background: selectedHost === s.name ? "#146ef5" : "var(--surface2)", color: selectedHost === s.name ? "#fff" : "var(--text)", borderColor: selectedHost === s.name ? "#146ef5" : "var(--border)" }}>
               🖥️ {s.name}
             </button>
           ))}
         </div>
       )}
 
-      {(anomaly?.anomalies?.some(a => a.isAnomaly) || prediction?.predictions?.some(p => p.hoursUntilBreach != null)) && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-          {anomaly?.anomalies?.some(a => a.isAnomaly) && (
-            <div style={{ background: "#fff", border: "1px solid #ffccc7", borderRadius: 10, padding: 20 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#ff4d4f", marginBottom: 12 }}>⚠️ 이상 감지</div>
-              {anomaly.anomalies.filter(a => a.isAnomaly).map(a => (
-                <div key={a.metric} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f5f5f5" }}>
-                  <span style={{ fontSize: 13 }}>{a.metric.replace("system_", "").replace("_usage", "").toUpperCase()}</span>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{a.current}%</span>
-                    <span style={{ fontSize: 11, background: a.severity === "critical" ? "#ff4d4f" : "#faad14", color: "#fff", padding: "2px 8px", borderRadius: 10 }}>
-                      {a.severity === "critical" ? "위험" : "주의"} (평균 {a.mean}%)
-                    </span>
-                  </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+        {anomaly?.anomalies?.some(a => a.isAnomaly) ? (
+          <div style={{ background: "var(--surface)", border: "1px solid #ffccc7", borderRadius: 10, padding: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#ff4d4f", marginBottom: 12 }}>⚠️ 이상 감지</div>
+            {anomaly.anomalies.filter(a => a.isAnomaly).map(a => (
+              <div key={a.metric} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
+                <span style={{ fontSize: 13, color: "var(--text)" }}>{a.metric.replace("system_", "").replace("_usage", "").toUpperCase()}</span>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{a.current}%</span>
+                  <span style={{ fontSize: 11, background: a.severity === "critical" ? "#ff4d4f" : "#faad14", color: "#fff", padding: "2px 8px", borderRadius: 10 }}>
+                    {a.severity === "critical" ? "위험" : "주의"} (평균 {a.mean}%)
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-          {prediction?.predictions?.some(p => p.hoursUntilBreach != null) && (
-            <div style={{ background: "#fff", border: "1px solid #ffe58f", borderRadius: 10, padding: 20 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "#faad14", marginBottom: 12 }}>📈 임계치 초과 예측</div>
-              {prediction.predictions.filter(p => p.hoursUntilBreach != null).map(p => (
-                <div key={p.metric} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f5f5f5" }}>
-                  <span style={{ fontSize: 13 }}>{p.metric.replace("system_", "").replace("_usage", "").toUpperCase()}</span>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span style={{ fontSize: 13 }}>{p.currentValue}% → {p.threshold}%</span>
-                    <span style={{ fontSize: 11, background: p.hoursUntilBreach < 6 ? "#ff4d4f" : "#faad14", color: "#fff", padding: "2px 8px", borderRadius: 10 }}>
-                      {p.hoursUntilBreach < 1 ? `${Math.round(p.hoursUntilBreach * 60)}분 후` : `${p.hoursUntilBreach.toFixed(1)}시간 후`}
-                    </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 20, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: 13 }}>
+            ✅ 이상 감지 없음
+          </div>
+        )}
+        <div style={{ background: "var(--surface)", border: `1px solid ${recentErrorLogs.length > 0 ? "#ffccc7" : "var(--border)"}`, borderRadius: 10, padding: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: recentErrorLogs.length > 0 ? "#ff4d4f" : "var(--text)", marginBottom: 12 }}>🔍 최근 오류 로그 분석</div>
+          {recentErrorLogs.length === 0 ? (
+            <div style={{ color: "var(--muted)", fontSize: 13 }}>최근 ERROR / WARN 로그가 없습니다.</div>
+          ) : (
+            <div style={{ maxHeight: 200, overflowY: "auto" }}>
+              {recentErrorLogs.map((l, i) => {
+                const tsNum = Number(String(l.timestamp).slice(0, 13));
+                const time = new Date(tsNum).toLocaleTimeString("ko-KR", { hour12: false, hour: "2-digit", minute: "2-digit" });
+                return (
+                  <div key={i} style={{ borderLeft: `3px solid ${l.severity === "ERROR" ? "#ff4d4f" : "#faad14"}`, paddingLeft: 8, marginBottom: 8, fontSize: 12 }}>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 2 }}>
+                      <span style={{ background: l.severity === "ERROR" ? "#ff4d4f" : "#faad14", color: "#fff", fontSize: 10, padding: "1px 6px", borderRadius: 8 }}>{l.severity}</span>
+                      <span style={{ color: "var(--muted)", fontSize: 11 }}>{time}</span>
+                    </div>
+                    <div style={{ color: "var(--text)", wordBreak: "break-all", lineHeight: 1.4 }}>{(l.body || l.rawMessage || "").slice(0, 120)}</div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
-      )}
+      </div>
 
       <MonthlyCalendar
         companyId={companyId}
@@ -688,56 +723,71 @@ export default function Dashboard() {
         loading={monthlyLoading}
         error={monthlyError}
         onAlertClick={async (date) => {
-          setAlertModalLoading(true);
-          setAlertModal({ date, loading: true });
+          setAlertModal({ date, loading: true, analyzing: false });
           try {
-            const data = await getDailyAlertSummary(companyId, date);
-            setAlertModal({ ...data, loading: false });
+            const data = await getDailyAlertRaw(companyId, date);
+            setAlertModal({ ...data, loading: false, analyzing: false, summary: null });
           } catch {
-            setAlertModal({ date, loading: false, summary: "데이터를 불러오지 못했습니다.", alerts: [], errorLogs: [] });
-          } finally {
-            setAlertModalLoading(false);
+            setAlertModal({ date, loading: false, analyzing: false, summary: null, alerts: [], errorLogs: [] });
           }
         }}
       />
 
       {alertModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setAlertModal(null)}>
-          <div style={{ background: "#fff", borderRadius: 12, padding: 32, maxWidth: 640, width: "90%", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.18)" }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: "var(--surface)", borderRadius: 12, padding: 32, maxWidth: 640, width: "90%", maxHeight: "80vh", overflowY: "auto", boxShadow: "0 8px 40px rgba(0,0,0,0.18)" }} onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ margin: 0, fontSize: 18, color: "#080808" }}>🚨 {alertModal.date} 위험 알림 요약</h3>
+              <h3 style={{ margin: 0, fontSize: 18, color: "var(--text)" }}>🚨 {alertModal.date} 위험 알림 요약</h3>
               <button onClick={() => setAlertModal(null)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "#888" }}>✕</button>
             </div>
             {alertModal.loading ? (
-              <div style={{ textAlign: "center", padding: 40, color: "#888" }}>AI 분석 중...</div>
+              <div style={{ textAlign: "center", padding: 40, color: "#888" }}>데이터 불러오는 중...</div>
             ) : (
               <>
-                <div style={{ background: "#f8fbff", border: "1px solid rgba(20,110,245,0.2)", borderRadius: 8, padding: 16, marginBottom: 20, fontSize: 14, lineHeight: 1.7, color: "#1a1a1a", whiteSpace: "pre-wrap" }}>
-                  <strong style={{ display: "block", marginBottom: 8, color: "#146ef5" }}>AI 요약 분석</strong>
-                  {alertModal.summary}
-                </div>
                 {alertModal.alerts?.length > 0 && (
                   <div style={{ marginBottom: 16 }}>
-                    <strong style={{ fontSize: 13, color: "#555", display: "block", marginBottom: 8 }}>임계치 초과 알람</strong>
+                    <strong style={{ fontSize: 13, color: "var(--muted)", display: "block", marginBottom: 8 }}>임계치 초과 알람 ({alertModal.alerts.length}건)</strong>
                     {alertModal.alerts.map((a, i) => (
-                      <div key={i} style={{ background: a.severity === "critical" ? "#fff1f0" : "#fffbe6", border: `1px solid ${a.severity === "critical" ? "#ffccc7" : "#ffe58f"}`, borderRadius: 6, padding: "8px 12px", marginBottom: 6, fontSize: 13 }}>
+                      <div key={i} style={{ background: a.severity === "critical" ? "rgba(255,77,79,0.08)" : "rgba(250,173,20,0.08)", border: `1px solid ${a.severity === "critical" ? "#ffccc7" : "#ffe58f"}`, borderRadius: 6, padding: "8px 12px", marginBottom: 6, fontSize: 13, color: "var(--text)" }}>
                         <span style={{ fontWeight: 600 }}>[{a.time}] {a.alertName}</span> — {a.description}
                       </div>
                     ))}
                   </div>
                 )}
                 {alertModal.errorLogs?.length > 0 && (
-                  <div>
-                    <strong style={{ fontSize: 13, color: "#555", display: "block", marginBottom: 8 }}>ERROR / WARN 로그</strong>
+                  <div style={{ marginBottom: 16 }}>
+                    <strong style={{ fontSize: 13, color: "var(--muted)", display: "block", marginBottom: 8 }}>ERROR / WARN 로그</strong>
                     {alertModal.errorLogs.map((l, i) => (
-                      <div key={i} style={{ background: l.severity === "ERROR" ? "#fff1f0" : "#fffbe6", borderLeft: `3px solid ${l.severity === "ERROR" ? "#ff4d4f" : "#faad14"}`, padding: "6px 10px", marginBottom: 4, fontSize: 12, fontFamily: "monospace", borderRadius: "0 4px 4px 0" }}>
-                        <span style={{ fontWeight: 700, marginRight: 6 }}>[{l.severity}]</span>{l.body}
+                      <div key={i} style={{ borderLeft: `3px solid ${l.severity === "ERROR" ? "#ff4d4f" : "#faad14"}`, padding: "6px 10px", marginBottom: 4, fontSize: 12, fontFamily: "monospace", borderRadius: "0 4px 4px 0", background: "var(--surface2)", color: "var(--text)" }}>
+                        <span style={{ fontWeight: 700, marginRight: 6, color: l.severity === "ERROR" ? "#ff4d4f" : "#faad14" }}>[{l.severity}]</span>{l.body}
                       </div>
                     ))}
                   </div>
                 )}
                 {!alertModal.alerts?.length && !alertModal.errorLogs?.length && (
-                  <div style={{ color: "#888", fontSize: 14 }}>해당 날짜에 기록된 위험 항목이 없습니다.</div>
+                  <div style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>해당 날짜에 기록된 위험 항목이 없습니다.</div>
+                )}
+                {alertModal.summary && (
+                  <div style={{ background: "var(--surface2)", border: "1px solid rgba(20,110,245,0.2)", borderRadius: 8, padding: 16, marginBottom: 16, fontSize: 14, lineHeight: 1.7, color: "var(--text)", whiteSpace: "pre-wrap" }}>
+                    <strong style={{ display: "block", marginBottom: 8, color: "#146ef5" }}>🤖 AI 요약 분석</strong>
+                    {alertModal.summary}
+                  </div>
+                )}
+                {!alertModal.summary && (
+                  <button
+                    disabled={alertModal.analyzing}
+                    onClick={async () => {
+                      setAlertModal(prev => ({ ...prev, analyzing: true }));
+                      try {
+                        const data = await getDailyAlertSummary(companyId, alertModal.date);
+                        setAlertModal(prev => ({ ...prev, summary: data.summary, analyzing: false }));
+                      } catch {
+                        setAlertModal(prev => ({ ...prev, analyzing: false }));
+                      }
+                    }}
+                    style={{ padding: "10px 20px", background: alertModal.analyzing ? "var(--surface2)" : "#146ef5", color: alertModal.analyzing ? "var(--muted)" : "#fff", border: "none", borderRadius: 8, cursor: alertModal.analyzing ? "default" : "pointer", fontWeight: 600, fontSize: 13 }}>
+                    {alertModal.analyzing ? "🤖 AI 분석 중..." : "🤖 AI 분석하기"}
+                  </button>
                 )}
               </>
             )}

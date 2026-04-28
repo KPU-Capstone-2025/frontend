@@ -1,10 +1,11 @@
 import { NavLink } from "react-router-dom";
 
-export default function NavItem({ to, icon, label, badge }) {
+export default function NavItem({ to, icon, label, badge, onClick }) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) => `navItem ${isActive ? "active" : ""}`}
+      onClick={onClick}
     >
       <div className="navItem__icon" aria-hidden="true">
         {icon}

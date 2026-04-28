@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import "./logs.css";
 import { getStoredSession, buildCompanyDisplayName } from "../../services/authStorage.js";
-import { getLogs, analyzeLog } from "../../services/monitoringApi.js";
+import { getLogs, analyzeLog, getServers } from "../../services/monitoringApi.js";
 
 /**
  * [수정사항]
@@ -27,9 +27,16 @@ export default function Logs() {
   const [loading, setLoading] = useState(false);
   const [expandedLogId, setExpandedLogId] = useState(null);
   const [filters, setFilters] = useState({ level: "all", q: "" });
-  
+  const [servers, setServers] = useState([]);
+  const [selectedServer, setSelectedServer] = useState(null);
+
   const [aiAnalysis, setAiAnalysis] = useState({});
   const [analyzingId, setAnalyzingId] = useState(null);
+
+  useEffect(() => {
+    if (!companyId) return;
+    getServers(companyId).then(list => setServers(Array.isArray(list) ? list : [])).catch(() => {});
+  }, [companyId]);
 
   const loadLogs = useCallback(async () => {
     if (!companyId) return;
@@ -40,7 +47,7 @@ export default function Logs() {
         limit: 100,
         keyword: filters.q,
         severity: filters.level === "all" ? "" : filters.level
-      });
+      }, selectedServer);
 
       const mapped = (data || []).map((item, idx) => {
         // 백엔드 timestamp 처리 (문자열인 경우 숫자로 변환)
@@ -53,7 +60,8 @@ export default function Logs() {
           time: dateObj.toLocaleTimeString("ko-KR", { hour12: false }),
           date: dateObj.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", weekday: "short" }),
           level: item.severity || "INFO",
-          text: parseCleanText(item.body || item.rawMessage)
+          text: parseCleanText(item.body || item.rawMessage),
+          serverName: item.hostName || null
         };
       });
 
@@ -72,7 +80,7 @@ export default function Logs() {
     } finally {
       setLoading(false);
     }
-  }, [companyId, filters]);
+  }, [companyId, filters, selectedServer]);
 
   useEffect(() => { loadLogs(); }, [loadLogs]);
 
@@ -97,6 +105,22 @@ export default function Logs() {
         <div className="logsTitle">로그 분석</div>
         <div className="logsDesc">{companyName} 시스템 로그 실시간 모니터링</div>
 
+        {servers.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)" }}>서버</span>
+            <button onClick={() => setSelectedServer(null)}
+              style={{ padding: "5px 14px", borderRadius: 20, border: "1px solid", fontSize: 12, cursor: "pointer", background: !selectedServer ? "#146ef5" : "var(--surface2)", color: !selectedServer ? "#fff" : "var(--text)", borderColor: !selectedServer ? "#146ef5" : "var(--border)" }}>
+              전체
+            </button>
+            {servers.map(s => (
+              <button key={s.id} onClick={() => setSelectedServer(s.name)}
+                style={{ padding: "5px 14px", borderRadius: 20, border: "1px solid", fontSize: 12, cursor: "pointer", background: selectedServer === s.name ? "#146ef5" : "var(--surface2)", color: selectedServer === s.name ? "#fff" : "var(--text)", borderColor: selectedServer === s.name ? "#146ef5" : "var(--border)" }}>
+                🖥️ {s.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="logPanel">
           <div className="filterRow">
             <div className="sourceTabs" role="tablist">
@@ -119,7 +143,7 @@ export default function Logs() {
         </div>
 
         <div className="logTableCard">
-          <div className="logTableHead" style={{ display: 'grid', gridTemplateColumns: '170px 100px minmax(0, 1fr)', padding: '12px 14px', background: 'rgba(15,23,42,0.02)', borderBottom: '1px solid #e2e8f0' }}>
+          <div className="logTableHead" style={{ display: 'grid', gridTemplateColumns: '170px 100px minmax(0, 1fr)', padding: '12px 14px', background: 'var(--surface2)', borderBottom: '1px solid var(--border)' }}>
             <div className="th">시간</div>
             <div className="th">레벨</div>
             <div className="th">로그 메시지</div>
@@ -133,17 +157,18 @@ export default function Logs() {
                 const hasAnalysis = !!aiAnalysis[item.id];
                 
                 return (
-                  <div key={item.id} className={`logRow ${hasAnalysis ? "expandable" : ""} ${expandedLogId === item.id ? "active" : ""}`} 
+                  <div key={item.id} className={`logRow ${hasAnalysis ? "expandable" : ""} ${expandedLogId === item.id ? "active" : ""}`}
                        onClick={() => hasAnalysis && setExpandedLogId(prev => prev === item.id ? null : item.id)}
-                       style={{ display: 'grid', gridTemplateColumns: '170px 100px minmax(0, 1fr)', padding: '12px 14px', borderBottom: '1px solid #f1f5f9', background: '#fff' }}>
-                    
+                       style={{ display: 'grid', gridTemplateColumns: '170px 100px minmax(0, 1fr)', padding: '12px 14px', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+
                     <div className="td timeCell">
                       <div className="timeMain mono">{item.time}</div>
                       <div className="timeSub">{item.date}</div>
+                      {item.serverName && <div style={{ fontSize: 10, color: '#146ef5', marginTop: 2, fontWeight: 600 }}>🖥️ {item.serverName}</div>}
                     </div>
-                    
+
                     <div className="td"><span className={`lv ${item.level.toLowerCase()}`}>{item.level}</span></div>
-                    
+
                     <div className="td msgCol" style={{ display: 'block' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                         <div className="msgText" style={{ wordBreak: 'break-all', whiteSpace: 'normal', flex: 1, paddingRight: '15px' }}>{item.text}</div>

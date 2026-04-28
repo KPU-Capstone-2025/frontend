@@ -147,9 +147,6 @@ export default function AgentInstall() {
   const monitoringId = agentInfo?.monitoringId || "불러오는 중...";
   const collectorUrl = agentInfo?.collectorUrl || "data.monittoring.co.kr:80";
 
-  const genericDockerCmd = useMemo(() => buildDockerCommand(monitoringId, collectorUrl, null), [monitoringId, collectorUrl]);
-  const genericCurlCmd = useMemo(() => buildCurlCommand(monitoringId, collectorUrl, null), [monitoringId, collectorUrl]);
-
   return (
     <div className="agentPage">
       <div className="agentWrap">
@@ -196,13 +193,6 @@ export default function AgentInstall() {
           </SectionCard>
         )}
 
-        <SectionCard icon="🐳" title="방법 1. Docker로 실행 (권장)" sub="SERVER_NAME 없이 실행 시 호스트명이 자동 사용됩니다." right={<span className="agentChip">권장</span>}>
-          <CodeBlock code={genericDockerCmd} disabled={loading || !agentInfo} />
-        </SectionCard>
-
-        <SectionCard icon="⌨️" title="방법 2. 바이너리 직접 실행" sub="Docker를 사용할 수 없는 환경에서 사용합니다.">
-          <CodeBlock code={genericCurlCmd} disabled={loading || !agentInfo} />
-        </SectionCard>
       </div>
     </div>
   );

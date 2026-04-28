@@ -42,10 +42,11 @@ export const getContainerMetrics = (id, name) => request(`/dashboard/${id}/conta
 export const getMonthlyMetrics = (id, params, hostName) => request(`/dashboard/${id}/metrics/monthly`, { query: hostName ? { ...params, hostName } : params }).then(r => r.result);
 
 // 3. 로그 및 AI 분석 (Loki 관련)
-export const getLogs = (id, params) => request(`/dashboard/${id}/logs`, { query: params }).then(r => r.result || []);
+export const getLogs = (id, params, hostName) => request(`/dashboard/${id}/logs`, { query: hostName ? { ...params, hostName } : params }).then(r => r.result || []);
 export const analyzeLog = (logContent) => request(`/dashboard/logs/analyze`, { method: "POST", body: { logContent } }).then(r => r.analysis);
 
-// 3-1. 날짜별 위험 알림 요약
+// 3-1. 날짜별 위험 알림 요약 (raw: AI 분석 없음, summary: AI 포함)
+export const getDailyAlertRaw = (id, date) => request(`/dashboard/${id}/alerts/daily/raw`, { query: { date } });
 export const getDailyAlertSummary = (id, date) => request(`/dashboard/${id}/alerts/daily`, { query: { date } });
 
 // 3-2. 멀티서버 / 이상감지 / 예측
