@@ -1,6 +1,8 @@
-const DEFAULT_BASE_URL = "http://localhost:8080/api";
+import { getStoredSession } from "./authStorage.js";
+
+const DEFAULT_BASE_URL = "http://capstone-elb-2051343563.ap-northeast-2.elb.amazonaws.com:8080/api";
 export const API_BASE_URL =
-  import.meta?.env?.VITE_API_BASE_URL || DEFAULT_BASE_URL;
+  (import.meta?.env?.VITE_API_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
 
 const USE_MOCK = import.meta?.env?.VITE_USE_MOCK === "true";
 const ENABLE_FALLBACK =
@@ -47,7 +49,12 @@ async function withMockFallback(realFn, mockFn) {
   }
 }
 
-async function fetchJson(url, { method = "GET", headers, body, signal } = {}) {
+function getAuthHeaders() {
+  const token = getStoredSession()?.token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function fetchJson(url, { method = "GET", headers, body, signal, auth = true } = {}) {
   let res;
 
   try {
@@ -55,6 +62,7 @@ async function fetchJson(url, { method = "GET", headers, body, signal } = {}) {
       method,
       headers: {
         "Content-Type": "application/json",
+        ...(auth ? getAuthHeaders() : {}),
         ...(headers || {}),
       },
       body,
@@ -575,6 +583,7 @@ export async function loginCompany({ email, password }, { signal } = {}) {
         method: "POST",
         body: JSON.stringify({ email, password }),
         signal,
+        auth: false,
       });
 
       const id = data?.id;
@@ -588,6 +597,8 @@ export async function loginCompany({ email, password }, { signal } = {}) {
         id,
         name: name || "",
         email,
+        monitoringId: data?.monitoringId || "",
+        token: data?.token || "",
       };
     },
     async () => {
@@ -611,6 +622,7 @@ export async function registerCompany(
         method: "POST",
         body: JSON.stringify({ name, email, password, ip, phone }),
         signal,
+        auth: false,
       });
     },
     async () => {
@@ -629,11 +641,11 @@ export async function registerCompany(
 export async function getAgentDestination(companyId, { signal } = {}) {
   return withMockFallback(
     async () => {
-      const data = await fetchJson(`${API_BASE_URL}/agent/${companyId}`, {
+      const data = await fetchJson(`${API_BASE_URL}/company/agent/${companyId}`, {
         signal,
       });
 
-      return data?.result || null;
+      return data?.result || data || null;
     },
     async () => {
       await sleep(120);
@@ -705,7 +717,7 @@ export async function getLogs(
     async () => {
       const qs = new URLSearchParams();
       qs.set("limit", String(limit));
-      if (query) qs.set("query", String(query));
+      if (query) qs.set("keyword", String(query));
       if (demo !== undefined) qs.set("demo", String(demo));
 
       return fetchJson(`${API_BASE_URL}/dashboard/${companyId}/logs?${qs.toString()}`, {

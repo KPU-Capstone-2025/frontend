@@ -172,7 +172,7 @@ export default function AgentInstall() {
         <SectionCard
           icon="🪪"
           title="현재 발급 정보"
-          sub="백엔드의 /api/agent/{companyId} 응답값을 그대로 사용합니다."
+          sub="백엔드의 /api/company/agent/{companyId} 응답값을 그대로 사용합니다."
         >
           <div className="installInfo">
             <div className="installInfo__title">회사 정보</div>
