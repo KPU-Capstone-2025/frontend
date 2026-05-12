@@ -1,5 +1,15 @@
 const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
+  import.meta.env.VITE_API_BASE_URL ?? "http://capstone-elb-2051343563.ap-northeast-2.elb.amazonaws.com:8080/api";
+
+function getStoredAuthToken() {
+  try {
+    const raw = window.sessionStorage.getItem("monittoring_session");
+    const session = raw ? JSON.parse(raw) : null;
+    return session?.token || session?.accessToken || session?.jwt || "";
+  } catch {
+    return "";
+  }
+}
 
 async function request(path, { method = "GET", query } = {}) {
   const url = new URL(BASE_URL + path);
@@ -18,6 +28,7 @@ async function request(path, { method = "GET", query } = {}) {
     method,
     headers: {
       "Content-Type": "application/json",
+      ...(getStoredAuthToken() ? { Authorization: `Bearer ${getStoredAuthToken()}` } : {}),
     },
   });
 

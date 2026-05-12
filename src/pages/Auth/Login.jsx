@@ -26,9 +26,13 @@ export default function Login() {
 
       setStoredSession({
         userId: session.id,
-        name: session.name,
-        email: session.email,
         id: session.id,
+        companyId: session.companyId || session.id,
+        name: session.name,
+        companyName: session.name,
+        email: session.email,
+        monitoringId: session.monitoringId || "",
+        token: session.token || "",
       });
 
       navigate("/dashboard", { replace: true });
