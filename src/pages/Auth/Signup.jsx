@@ -12,7 +12,6 @@ export default function Signup() {
     email: "",
     pw: "",
     pw2: "",
-    companyIp: "",
     birthY: "",
     birthM: "",
     birthD: "",
@@ -59,6 +58,7 @@ export default function Signup() {
   const onToggle = (key, checked) => {
     setAgree((prev) => {
       const next = { ...prev, [key]: checked };
+
       const allOn =
         next.terms &&
         next.privacy &&
@@ -78,7 +78,6 @@ export default function Signup() {
     if (!form.pw) return "비밀번호를 입력해주세요.";
     if (!form.pw2) return "비밀번호 확인을 입력해주세요.";
     if (form.pw !== form.pw2) return "비밀번호가 일치하지 않습니다.";
-    if (!form.companyIp.trim()) return "회사 IP를 입력해주세요.";
     if (!requiredOk) return "필수 약관에 동의해주세요.";
 
     return "";
@@ -103,7 +102,7 @@ export default function Signup() {
         name: form.company.trim(),
         email: form.email.trim(),
         password: form.pw,
-        ip: form.companyIp.trim(),
+        ip: "",
         phone: "",
       });
 
@@ -163,15 +162,6 @@ export default function Signup() {
               {touched.pw2 && pwMatch === false && (
                 <p className="errorText">비밀번호가 일치하지 않습니다.</p>
               )}
-            </Field>
-
-            <Field label="회사 IP" required>
-              <input
-                placeholder="예: 192.168.0.1"
-                value={form.companyIp}
-                onChange={(e) => setField("companyIp", e.target.value)}
-                required
-              />
             </Field>
 
             <Field label="생년월일">

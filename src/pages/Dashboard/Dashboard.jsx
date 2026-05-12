@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
 
 import {
@@ -99,6 +99,7 @@ function formatValue(value, unit) {
   if (unit === "MB") return `${safe.toFixed(2)} MB`;
   if (unit === "KB/s") return `${safe.toFixed(2)} KB/s`;
   if (unit === "B/s") return `${safe.toFixed(2)} B/s`;
+  if (unit === "명") return `${Math.round(safe).toLocaleString("ko-KR")}명`;
 
   return `${safe.toFixed(2)} ${unit || ""}`.trim();
 }
@@ -477,6 +478,9 @@ function LiveChartCard({
   danger = false,
   sensitivity = "normal",
 }) {
+  const chartBodyRef = useRef(null);
+  const [hoverIndex, setHoverIndex] = useState(null);
+
   const smoothed = useMemo(
     () => smoothSeries(rawSeries, unit, { sensitivity }),
     [rawSeries, unit, sensitivity]
@@ -496,12 +500,61 @@ function LiveChartCard({
   const displayValue =
     unit === "%"
       ? Number(currentValue || 0).toFixed(1)
+      : unit === "명"
+      ? Math.round(Number(currentValue || 0)).toLocaleString("ko-KR")
       : Number(currentValue || 0).toFixed(2);
 
   const gradientId = useMemo(
     () => `chartArea-${title.replace(/\s+/g, "-").replace(/[^\w-]/g, "")}`,
     [title]
   );
+
+  const activeIndex = hoverIndex !== null ? hoverIndex : null;
+
+  const latestPoint = geometry.points.length
+    ? geometry.points[geometry.points.length - 1]
+    : null;
+
+  const activePoint =
+    activeIndex !== null && geometry.points[activeIndex]
+      ? geometry.points[activeIndex]
+      : null;
+
+  function findNearestIndex(clientX) {
+    if (!geometry.points.length || !chartBodyRef.current) return null;
+
+    const rect = chartBodyRef.current.getBoundingClientRect();
+    const svgX = ((clientX - rect.left) / rect.width) * CHART_WIDTH;
+
+    let nearestIndex = 0;
+    let minDistance = Infinity;
+
+    geometry.points.forEach((point, index) => {
+      const distance = Math.abs(point.x - svgX);
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestIndex = index;
+      }
+    });
+
+    return nearestIndex;
+  }
+
+  function handlePointerMove(event) {
+    const index = findNearestIndex(event.clientX);
+    if (index !== null) setHoverIndex(index);
+  }
+
+  function handlePointerLeave() {
+    setHoverIndex(null);
+  }
+
+  const tooltipStyle = activePoint
+    ? {
+        left: `${(activePoint.x / CHART_WIDTH) * 100}%`,
+        top: `${(activePoint.y / CHART_HEIGHT) * 100}%`,
+      }
+    : undefined;
 
   return (
     <div className={`liveChartCard ${danger ? "is-danger" : ""}`}>
@@ -519,7 +572,12 @@ function LiveChartCard({
         </div>
       </div>
 
-      <div className="liveChartCard__body">
+      <div
+        className="liveChartCard__body"
+        ref={chartBodyRef}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
+      >
         <svg
           className="liveChartSvg"
           viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
@@ -533,40 +591,40 @@ function LiveChartCard({
             </linearGradient>
           </defs>
 
-          <line
-            x1="14"
-            y1="16"
-            x2={CHART_WIDTH - 14}
-            y2="16"
-            className="chartGridLine"
-          />
-          <line
-            x1="14"
-            y1={CHART_HEIGHT / 2}
-            x2={CHART_WIDTH - 14}
-            y2={CHART_HEIGHT / 2}
-            className="chartGridLine"
-          />
-          <line
-            x1="14"
-            y1={CHART_HEIGHT - 16}
-            x2={CHART_WIDTH - 14}
-            y2={CHART_HEIGHT - 16}
-            className="chartGridLine"
-          />
+          <line x1="14" y1="16" x2={CHART_WIDTH - 14} y2="16" className="chartGridLine" />
+          <line x1="14" y1={CHART_HEIGHT / 2} x2={CHART_WIDTH - 14} y2={CHART_HEIGHT / 2} className="chartGridLine" />
+          <line x1="14" y1={CHART_HEIGHT - 16} x2={CHART_WIDTH - 14} y2={CHART_HEIGHT - 16} className="chartGridLine" />
 
           <path d={geometry.areaPath} fill={`url(#${gradientId})`} />
           <path d={geometry.linePath} className="chartLine" />
 
-          {geometry.points.length ? (
-            <circle
-              cx={geometry.points[geometry.points.length - 1].x}
-              cy={geometry.points[geometry.points.length - 1].y}
-              r="4.5"
-              className="chartDot"
-            />
+          {latestPoint ? (
+            <circle cx={latestPoint.x} cy={latestPoint.y} r="4.5" className="chartDot" />
+          ) : null}
+
+          {activePoint ? (
+            <>
+              <line
+                x1={activePoint.x}
+                y1="12"
+                x2={activePoint.x}
+                y2={CHART_HEIGHT - 16}
+                className="chartCursorLine"
+              />
+              <circle cx={activePoint.x} cy={activePoint.y} r="6" className="chartDot chartDot--active" />
+            </>
           ) : null}
         </svg>
+
+        {activePoint ? (
+          <div className="chartTooltip" style={tooltipStyle}>
+            <div className="chartTooltip__title">{title}</div>
+            <div className="chartTooltip__time">{formatDateTime(activePoint.t)}</div>
+            <div className="chartTooltip__value">
+              {formatValue(activePoint.rawValue, unit)}
+            </div>
+          </div>
+        ) : null}
 
         <div className="chartAxisY">
           <span>{geometry.max.toFixed(unit === "%" ? 1 : 2)}</span>
@@ -793,6 +851,11 @@ export default function Dashboard() {
             title="네트워크 트래픽"
             value={formatValue(host?.networkTraffic, host?.networkUnit || "MB/s")}
             sub="최근 수집 기준"
+          />
+          <MetricCard
+            title="사용자 수"
+            value={formatValue(host?.userCount, host?.userUnit || "명")}
+            sub="현재 접속 사용자 기준"
           />
         </div>
 

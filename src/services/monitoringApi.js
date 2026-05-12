@@ -231,6 +231,20 @@ function buildSummary(metrics) {
   };
 }
 
+function normalizeUserCount(metrics) {
+  const candidates = [
+    metrics?.userCount,
+    metrics?.users,
+    metrics?.activeUsers,
+    metrics?.loginUsers,
+    metrics?.connectedUsers,
+    metrics?.currentUsers,
+  ];
+
+  const found = candidates.find((value) => value !== undefined && value !== null);
+  return Math.max(0, Math.round(clampNumber(found, 0)));
+}
+
 function normalizeHostResponse(payload, companyId) {
   const metrics = payload?.result || {};
 
@@ -244,6 +258,7 @@ function normalizeHostResponse(payload, companyId) {
     allowBytes: true,
   });
   const network = normalizeNetwork(metrics.networkTraffic);
+  const userCount = normalizeUserCount(metrics);
 
   return {
     companyId,
@@ -260,6 +275,8 @@ function normalizeHostResponse(payload, companyId) {
       diskUnit: disk.unit,
       networkTraffic: network.value,
       networkUnit: network.unit,
+      userCount,
+      userUnit: "명",
       lastUpdate: new Date().toISOString(),
     },
     hostMetrics: {
@@ -267,6 +284,7 @@ function normalizeHostResponse(payload, companyId) {
       memory: makeInitialSeries(memory.value),
       disk: makeInitialSeries(disk.value),
       network: makeInitialSeries(network.value),
+      users: makeInitialSeries(userCount),
     },
   };
 }
@@ -283,7 +301,7 @@ function normalizeContainersResponse(payload) {
 }
 
 function normalizeContainerMetricsResponse(payload) {
-  const metrics = payload?.results || {};
+  const metrics = payload?.result || payload?.results || {};
 
   const cpu = normalizeUsage(metrics.cpuUsage, { preferred: "percent" });
   const memory = normalizeUsage(metrics.memoryUsage, {
@@ -339,6 +357,7 @@ function getMockHostPayload() {
   const memoryPercent = mockWave(58, mockRuntime.hostTick + 4, 6, 20, 95);
   const diskPercent = mockWave(44, mockRuntime.hostTick + 9, 4, 15, 88);
   const networkKb = mockWave(280, mockRuntime.hostTick + 3, 180, 30, 2200);
+  const userCount = Math.round(mockWave(43, mockRuntime.hostTick + 6, 9, 12, 120));
 
   return {
     result: {
@@ -347,6 +366,7 @@ function getMockHostPayload() {
       memoryUsage: memoryPercent,
       diskUsage: diskPercent,
       networkTraffic: networkKb * 1024,
+      userCount,
     },
   };
 }
@@ -500,6 +520,11 @@ export function mergeHostSnapshot(prevHostData, nextHostData) {
       network: appendSeriesPoint(
         prevHostData?.hostMetrics?.network,
         nextHostData?.host?.networkTraffic,
+        timestamp
+      ),
+      users: appendSeriesPoint(
+        prevHostData?.hostMetrics?.users,
+        nextHostData?.host?.userCount,
         timestamp
       ),
     },
@@ -659,7 +684,7 @@ export async function getContainerMetrics(
     async () => {
       const qs = new URLSearchParams({ period: String(range) }).toString();
       const data = await fetchJson(
-        `${API_BASE_URL}/dashboard/${companyId}/${encodeURIComponent(containerId)}?${qs}`,
+        `${API_BASE_URL}/dashboard/${companyId}/container/${encodeURIComponent(containerId)}/metrics?${qs}`,
         { signal }
       );
 
