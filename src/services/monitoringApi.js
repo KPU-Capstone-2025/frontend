@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 import { getStoredSession } from "./authStorage.js";
 
+=======
+>>>>>>> e282a8a90d05afd9cbee554fb5307f8d44a8453a
 const DEFAULT_BASE_URL = "http://capstone-elb-2051343563.ap-northeast-2.elb.amazonaws.com:8080/api";
 export const API_BASE_URL =
   (import.meta?.env?.VITE_API_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
@@ -8,8 +11,27 @@ const USE_MOCK = import.meta?.env?.VITE_USE_MOCK === "true";
 const ENABLE_FALLBACK =
   import.meta?.env?.VITE_ENABLE_API_FALLBACK !== "false";
 
-// 실시간 그래프
-// 실제로 수집된 스냅샷 쌓이도록 .
+const SESSION_KEY = "monittoring_session";
+
+function getStoredAuthToken() {
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_KEY);
+    const session = raw ? JSON.parse(raw) : null;
+    return session?.token || session?.accessToken || session?.jwt || "";
+  } catch {
+    return "";
+  }
+}
+
+function buildAuthHeaders(headers = {}) {
+  const token = getStoredAuthToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(headers || {}),
+  };
+}
+
 const HISTORY_LIMIT = 80;
 
 const mockRuntime = {
@@ -60,11 +82,15 @@ async function fetchJson(url, { method = "GET", headers, body, signal, auth = tr
   try {
     res = await fetch(url, {
       method,
+<<<<<<< HEAD
       headers: {
         "Content-Type": "application/json",
         ...(auth ? getAuthHeaders() : {}),
         ...(headers || {}),
       },
+=======
+      headers: buildAuthHeaders(headers),
+>>>>>>> e282a8a90d05afd9cbee554fb5307f8d44a8453a
       body,
       signal,
     });
@@ -239,20 +265,6 @@ function buildSummary(metrics) {
   };
 }
 
-function normalizeUserCount(metrics) {
-  const candidates = [
-    metrics?.userCount,
-    metrics?.users,
-    metrics?.activeUsers,
-    metrics?.loginUsers,
-    metrics?.connectedUsers,
-    metrics?.currentUsers,
-  ];
-
-  const found = candidates.find((value) => value !== undefined && value !== null);
-  return Math.max(0, Math.round(clampNumber(found, 0)));
-}
-
 function normalizeHostResponse(payload, companyId) {
   const metrics = payload?.result || {};
 
@@ -266,7 +278,6 @@ function normalizeHostResponse(payload, companyId) {
     allowBytes: true,
   });
   const network = normalizeNetwork(metrics.networkTraffic);
-  const userCount = normalizeUserCount(metrics);
 
   return {
     companyId,
@@ -283,8 +294,6 @@ function normalizeHostResponse(payload, companyId) {
       diskUnit: disk.unit,
       networkTraffic: network.value,
       networkUnit: network.unit,
-      userCount,
-      userUnit: "명",
       lastUpdate: new Date().toISOString(),
     },
     hostMetrics: {
@@ -292,7 +301,6 @@ function normalizeHostResponse(payload, companyId) {
       memory: makeInitialSeries(memory.value),
       disk: makeInitialSeries(disk.value),
       network: makeInitialSeries(network.value),
-      users: makeInitialSeries(userCount),
     },
   };
 }
@@ -309,7 +317,7 @@ function normalizeContainersResponse(payload) {
 }
 
 function normalizeContainerMetricsResponse(payload) {
-  const metrics = payload?.result || payload?.results || {};
+  const metrics = payload?.result || payload?.results || payload || {};
 
   const cpu = normalizeUsage(metrics.cpuUsage, { preferred: "percent" });
   const memory = normalizeUsage(metrics.memoryUsage, {
@@ -365,7 +373,6 @@ function getMockHostPayload() {
   const memoryPercent = mockWave(58, mockRuntime.hostTick + 4, 6, 20, 95);
   const diskPercent = mockWave(44, mockRuntime.hostTick + 9, 4, 15, 88);
   const networkKb = mockWave(280, mockRuntime.hostTick + 3, 180, 30, 2200);
-  const userCount = Math.round(mockWave(43, mockRuntime.hostTick + 6, 9, 12, 120));
 
   return {
     result: {
@@ -374,7 +381,6 @@ function getMockHostPayload() {
       memoryUsage: memoryPercent,
       diskUsage: diskPercent,
       networkTraffic: networkKb * 1024,
-      userCount,
     },
   };
 }
@@ -530,11 +536,6 @@ export function mergeHostSnapshot(prevHostData, nextHostData) {
         nextHostData?.host?.networkTraffic,
         timestamp
       ),
-      users: appendSeriesPoint(
-        prevHostData?.hostMetrics?.users,
-        nextHostData?.host?.userCount,
-        timestamp
-      ),
     },
   };
 }
@@ -586,8 +587,12 @@ export async function loginCompany({ email, password }, { signal } = {}) {
         auth: false,
       });
 
-      const id = data?.id;
-      const name = data?.name;
+      const payload = data?.result || data?.data || data || {};
+      const id = payload.id || payload.companyId || payload.company_id;
+      const name = payload.name || payload.companyName || payload.company_name;
+      const monitoringId =
+        payload.monitoringId || payload.monitoring_id || payload.monitoringID || "";
+      const token = payload.token || payload.accessToken || payload.access_token || payload.jwt || "";
 
       if (!id) {
         throw createApiError("로그인 응답에서 id를 찾지 못했습니다.");
@@ -595,18 +600,27 @@ export async function loginCompany({ email, password }, { signal } = {}) {
 
       return {
         id,
+        companyId: id,
         name: name || "",
         email,
+<<<<<<< HEAD
         monitoringId: data?.monitoringId || "",
         token: data?.token || "",
+=======
+        monitoringId,
+        token,
+>>>>>>> e282a8a90d05afd9cbee554fb5307f8d44a8453a
       };
     },
     async () => {
       await sleep();
       return {
         id: 9999,
+        companyId: 9999,
         name: "Mock Company",
         email,
+        monitoringId: "mock-monitoring-id",
+        token: "",
       };
     }
   );
@@ -694,9 +708,8 @@ export async function getContainerMetrics(
 ) {
   return withMockFallback(
     async () => {
-      const qs = new URLSearchParams({ period: String(range) }).toString();
       const data = await fetchJson(
-        `${API_BASE_URL}/dashboard/${companyId}/container/${encodeURIComponent(containerId)}/metrics?${qs}`,
+        `${API_BASE_URL}/dashboard/${companyId}/container/${encodeURIComponent(containerId)}/metrics`,
         { signal }
       );
 

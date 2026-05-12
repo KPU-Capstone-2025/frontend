@@ -1,5 +1,20 @@
+<<<<<<< HEAD
 const DEFAULT_BASE_URL = "http://capstone-elb-2051343563.ap-northeast-2.elb.amazonaws.com:8080/api";
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
+=======
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://capstone-elb-2051343563.ap-northeast-2.elb.amazonaws.com:8080/api";
+
+function getStoredAuthToken() {
+  try {
+    const raw = window.sessionStorage.getItem("monittoring_session");
+    const session = raw ? JSON.parse(raw) : null;
+    return session?.token || session?.accessToken || session?.jwt || "";
+  } catch {
+    return "";
+  }
+}
+>>>>>>> e282a8a90d05afd9cbee554fb5307f8d44a8453a
 
 async function request(path, { method = "GET", query, body, auth = true } = {}) {
   const url = new URL(`${BASE_URL}${path}`);
@@ -18,7 +33,11 @@ async function request(path, { method = "GET", query, body, auth = true } = {}) 
     method,
     headers: {
       "Content-Type": "application/json",
+<<<<<<< HEAD
       ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
+=======
+      ...(getStoredAuthToken() ? { Authorization: `Bearer ${getStoredAuthToken()}` } : {}),
+>>>>>>> e282a8a90d05afd9cbee554fb5307f8d44a8453a
     },
     body: body ? JSON.stringify(body) : undefined,
   });
