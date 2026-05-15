@@ -1,4 +1,4 @@
-import { getLogs } from "../api/monitoringApi";
+import { getLogs } from "./monitoringApi.js";
 
 const LEVELS = ["ERROR", "WARN", "INFO"];
 
@@ -24,59 +24,55 @@ function normalizeSeverity(rawSeverity) {
 
 function normalizeRisk(rawRisk, severity) {
   const value = String(rawRisk || "").toLowerCase();
-  if (value === "danger" || value === "error" || value === "critical") return "danger";
-  if (value === "warn" || value === "warning") return "warn";
-  if (value === "normal" || value === "ok" || value === "info") return "normal";
-
+  if (value.includes("danger") || value.includes("error")) return "danger";
+  if (value.includes("warn") || value.includes("warning")) return "warn";
   if (severity === "ERROR") return "danger";
   if (severity === "WARN") return "warn";
   return "normal";
 }
 
-function formatTime(ms) {
-  const date = new Date(ms);
-  if (Number.isNaN(date.getTime())) {
-    return { timeText: "-", dateText: "-" };
-  }
-
-  const timeText = date.toLocaleTimeString("ko-KR", {
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  const dateText = date.toLocaleDateString("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-    weekday: "short",
-  });
-
-  return { timeText, dateText };
+function parseTimestampToMs(value, fallback = Date.now()) {
+  if (!value) return fallback;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function parseTimestampToMs(rawTimestamp, fallbackMs) {
-  const value = Number(rawTimestamp);
-  if (!Number.isFinite(value) || value <= 0) return fallbackMs;
+function formatTime(ts) {
+  const date = new Date(ts);
 
-  // 16+ digits: ns, 13-15 digits: us, 11-13 digits: ms, <=10 digits: seconds
-  if (value >= 1e16) return Math.floor(value / 1_000_000);
-  if (value >= 1e13) return Math.floor(value / 1_000);
-  if (value >= 1e11) return Math.floor(value);
-  return Math.floor(value * 1_000);
+  return {
+    timeText: date.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }),
+    dateText: date.toLocaleDateString("ko-KR"),
+  };
 }
 
 function normalizeInterpretation(rawInterpretation, severity) {
-  if (!rawInterpretation || typeof rawInterpretation !== "object") {
-    return null;
-  }
+  if (!rawInterpretation) return null;
 
-  const action = String(rawInterpretation.action || rawInterpretation.remedy || "");
-  const detail = String(rawInterpretation.description || rawInterpretation.detail || "");
+  const detail = String(
+    rawInterpretation.detail ||
+      rawInterpretation.description ||
+      rawInterpretation.reason ||
+      ""
+  ).trim();
+
+  const action = String(
+    rawInterpretation.action || rawInterpretation.solution || ""
+  ).trim();
+
   const evidence = Array.isArray(rawInterpretation.evidence)
     ? rawInterpretation.evidence.map((it) => String(it)).join(", ")
     : String(rawInterpretation.evidence || "");
 
-  const risk = normalizeRisk(rawInterpretation.status || rawInterpretation.risk, severity);
+  const risk = normalizeRisk(
+    rawInterpretation.status || rawInterpretation.risk,
+    severity
+  );
 
   return {
     title: String(rawInterpretation.title || rawInterpretation.name || "로그 해석"),
@@ -98,7 +94,9 @@ function normalizeLogEntry(log, idx) {
 
   const source =
     String(log?.sourceName || "") ||
-    String(sourceType === "container" ? log?.containerName || "" : log?.hostName || "") ||
+    String(
+      sourceType === "container" ? log?.containerName || "" : log?.hostName || ""
+    ) ||
     String(log?.containerName || log?.hostName || "Unknown");
 
   const body = String(log?.body || "");
@@ -172,7 +170,9 @@ export async function fetchLogs({
 
   const now = Date.now();
   const windowMs = timeRangeToMs(timeRange);
-  const minTs = Number.isFinite(windowMs) ? now - windowMs : Number.NEGATIVE_INFINITY;
+  const minTs = Number.isFinite(windowMs)
+    ? now - windowMs
+    : Number.NEGATIVE_INFINITY;
 
   let filtered = normalized.filter((row) => Number.isFinite(row.ts) && row.ts >= minTs);
 

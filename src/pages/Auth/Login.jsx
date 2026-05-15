@@ -19,14 +19,15 @@ export default function Login() {
       setLoading(true);
       setError("");
       const session = await loginCompany({ email, password });
-      
-      // 백엔드 LoginResponse(id, name, monitoringId)를 세션에 저장
+
       setStoredSession({
         id: session.id,
+        companyId: session.id,
         name: session.name,
+        companyName: session.name,
         email: email,
-        monitoringId: session.monitoringId,
-        token: session.token
+        monitoringId: session.monitoringId || "",
+        token: session.token || "",
       });
 
       navigate("/dashboard", { replace: true });

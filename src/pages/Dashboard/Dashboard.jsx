@@ -530,7 +530,7 @@ function MonthlyCalendar({ companyId, monthDate, monthlyData, selectedDate, onSe
 
 export default function Dashboard() {
   const session = getStoredSession();
-  const companyId = session?.id || "";
+  const companyId = session?.companyId || session?.id || "";
   const [view, setView] = useState(() => companyId ? getRuntime(companyId).snapshot : createInitialSnapshot());
   const [monthDate, setMonthDate] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [monthlyData, setMonthlyData] = useState(null);

@@ -83,6 +83,7 @@ export default function Signup() {
               {touched.pw2 && pwMatch === true && <p className="okText">확인!</p>}
               {touched.pw2 && pwMatch === false && <p className="errorText">비밀번호가 일치하지 않습니다.</p>}
             </Field>
+
             <div className="agreeBox" style={{ marginTop: '20px' }}>
               <label className="checkRow checkRow--all"><span>전체 동의</span><input type="checkbox" checked={agree.all} onChange={(e) => onToggleAll(e.target.checked)} /></label>
               <div className="agreeList">
@@ -93,7 +94,7 @@ export default function Signup() {
             </div>
 
             {submitError && <div className="submitError" style={{ color: 'red', marginTop: '10px' }}>{submitError}</div>}
-            
+
             <button type="submit" className="authBtn primary" disabled={!requiredOk || submitting} style={{ marginTop: '20px' }}>
               {submitting ? "회원가입 중..." : "회원가입"}
             </button>
@@ -114,7 +115,7 @@ function Field({ label, required, children }) {
   );
 }
 
-function AgreeRow({ label, checked, onChange, isSub }) {
+function AgreeRow({ label, checked, onChange, isSub = false }) {
   return (
     <label className={`checkRow ${isSub ? "checkRow--sub" : ""}`}>
       <span>{label}</span><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
