@@ -1,178 +1,192 @@
-/* ===== Auth Wrapper ===== */
+/* 배경 */
 .authWrapper {
   min-height: 100vh;
-  background:
-    radial-gradient(1000px 600px at 20% 40%, rgba(77,132,245,0.14), transparent 60%),
-    radial-gradient(800px 500px at 80% 30%, rgba(77,132,245,0.08), transparent 60%),
-    linear-gradient(180deg, #070a16 0%, #0b1026 70%, #0a0d1a 100%);
+  background: #f4f6fa;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 24px;
+  padding: 24px; /* 작은 화면에서 잘림 방지 */
 }
 
-/* ===== Auth Card ===== */
+/* 카드: height 고정 제거 -> 안 잘리게 */
 .authCard {
   width: 100%;
-  max-width: 960px;
-  min-height: 500px;
+  max-width: 1000px;
+
+  /* ❌ height: 520px; 제거 */
+  min-height: 520px; /* 기본은 유지하되, 내용 많으면 늘어나게 */
   height: auto;
+
   display: grid;
   grid-template-columns: 1fr 1fr;
-  background: #161c2d;
-  border-radius: 12px;
-  box-shadow: rgba(0,0,0,0.5) 0px 8px 24px;
-  border: 1px solid rgba(255,255,255,0.07);
+
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
   overflow: hidden;
 }
 
-/* ===== Left (Preview) ===== */
+/* 왼쪽: 전체 파란 배경 제거 (파란색은 ImacMock 안의 파란 베이스만 보이게) */
 .authLeft {
-  background: #0b0f1c;
+  background: #ffffff; /* ✅ 파란 그라데이션 제거 */
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 36px;
-  border-right: 1px solid rgba(255,255,255,0.06);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-/* ===== Right (Form) ===== */
+/* 오른쪽 */
 .authRight {
-  padding: 48px 56px 40px;
+  padding: 52px 60px 44px 60px; /* 아래 공간 조금 확보 */
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
+/* 제목 */
 .authTitle {
-  font-size: 28px;
-  font-weight: 700;
-  color: #ffffff;
-  margin-bottom: 6px;
-  letter-spacing: -0.02em;
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 8px;
 }
 
 .authSub {
-  font-size: 13px;
-  color: #7b8ea6;
-  margin-bottom: 24px;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 26px;
 }
 
-/* ===== Form ===== */
+/* 폼 */
 .authForm {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 10px; /* 살짝 줄여서 아래 잘림 방지 */
 }
 
 .authLabel {
-  font-size: 12px;
-  font-weight: 700;
-  color: #b3b3b3;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
 }
 
+/* 인풋 */
 .authForm input {
-  padding: 12px 16px;
-  border-radius: 9999px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.05);
-  color: #ffffff;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #dcdcdc;
   font-size: 14px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
 }
-
-.authForm input::placeholder { color: #7b8ea6; }
 
 .authForm input:focus {
   outline: none;
-  border-color: rgba(77,132,245,0.6);
-  box-shadow: 0 0 0 3px rgba(77,132,245,0.15);
+  border-color: #0b2bff;
+  box-shadow: 0 0 0 3px rgba(11, 43, 255, 0.15);
 }
 
-/* ===== Buttons ===== */
+/* 버튼 기본 */
 .authBtn {
   margin-top: 6px;
   padding: 12px;
-  border-radius: 9999px;
-  font-size: 13px;
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.4px;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.2s ease;
+  transition: all 0.2s ease;
 }
 
+/* 로그인 버튼 */
 .authBtn.primary {
-  background: #4d84f5;
-  color: #ffffff;
-  border: 1px solid rgba(77,132,245,0.6);
+  background: #0b2bff;
+  color: white;
+  border: none;
 }
 
 .authBtn.primary:hover {
-  transform: translateY(-1px);
-  background: #3a73e8;
+  background: #001eff;
 }
 
+/* 회원가입 버튼 */
 .authBtn.secondary {
-  background: rgba(255,255,255,0.05);
-  color: #e8edf5;
-  border: 1px solid rgba(255,255,255,0.12);
+  background: #f3f3f3;
+  border: 1px solid #ddd;
 }
 
 .authBtn.secondary:hover {
-  transform: translateY(-1px);
-  background: rgba(255,255,255,0.08);
+  background: #e9e9e9;
 }
 
+/* 비밀번호 찾기: 기본 HTML 느낌 제거 */
 .authTextLink {
   align-self: flex-start;
   padding: 0;
   margin-top: 2px;
-  font-size: 12px;
+
+  font-size: 13px;
   font-weight: 700;
-  color: #7b8ea6;
+  color: #667085;
+
   background: none;
   border: none;
   text-decoration: none;
+
   cursor: pointer;
-  transition: color 0.18s ease;
+  transition: color 0.18s ease, transform 0.18s ease;
 }
 
-.authTextLink:hover { color: #4d84f5; }
+.authTextLink:hover {
+  color: #0b2bff;
+  transform: translateY(-1px);
+}
 
 .authTextLink:focus-visible {
-  outline: 3px solid rgba(77,132,245,0.3);
+  outline: 3px solid rgba(11, 43, 255, 0.25);
   outline-offset: 3px;
   border-radius: 6px;
 }
 
+/* 처음으로: 아래로 밀려도 잘리지 않게 + 세련된 미니 버튼 */
 .authBack {
   align-self: flex-start;
   margin-top: 8px;
-  padding: 6px 14px;
-  font-size: 12px;
+  padding: 6px 12px;
+
+  font-size: 13px;
   font-weight: 700;
-  color: #b3b3b3;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 9999px;
+  color: #344054;
+
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+
   cursor: pointer;
-  transition: background 0.18s ease, transform 0.18s ease;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
 .authBack:hover {
-  background: rgba(255,255,255,0.07);
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.18);
   transform: translateY(-1px);
 }
 
-/* ===== Responsive ===== */
-@media (max-width: 860px) {
+.authBack:focus-visible {
+  outline: 3px solid rgba(11, 43, 255, 0.25);
+  outline-offset: 3px;
+}
+
+/* 반응형 */
+@media (max-width: 900px) {
   .authCard {
     grid-template-columns: 1fr;
     min-height: auto;
   }
-  .authLeft { display: none; }
-  .authRight { padding: 40px; }
+
+  .authLeft {
+    display: none;
+  }
+
+  .authRight {
+    padding: 40px;
+  }
 }

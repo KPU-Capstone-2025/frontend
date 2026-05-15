@@ -1,117 +1,177 @@
-import { useState, useEffect } from "react";
-import { getStoredSession } from "../../services/authStorage.js";
-import { getServers, registerServer, deleteServer } from "../../services/monitoringApi.js";
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import "./servers.css";
+
+function StatusPill({ tone, label }) {
+  return <span className={`pill pill--${tone}`}>{label}</span>;
+}
+
+function formatUptime(hours) {
+  if (hours <= 0) return "-";
+  if (hours < 24) return `${hours}시간`;
+  const days = Math.floor(hours / 24);
+  const remain = hours % 24;
+  return remain ? `${days}일 ${remain}시간` : `${days}일`;
+}
 
 export default function Servers() {
-  const session = getStoredSession();
-  const companyId = session?.id;
-  const [servers, setServers] = useState([]);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [expandedId, setExpandedId] = useState(null);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!companyId) return;
-    setLoading(true);
-    getServers(companyId).then(setServers).catch(() => {}).finally(() => setLoading(false));
-  }, [companyId]);
+  const servers = useMemo(
+    () => [
+      {
+        id: "a",
+        name: "a 중소기업 서버",
+        ip: "10.0.1.3",
+        os: "Ubuntu 22.04",
+        containers: 7,
+        health: "ok",
+        cpu: 18,
+        mem: 41,
+        disk: 52,
+        uptimeHours: 216,
+        lastSeen: "방금 전",
+      },
+      {
+        id: "b",
+        name: "b 중소기업 서버",
+        ip: "10.0.1.4",
+        os: "Ubuntu 22.04",
+        containers: 5,
+        health: "warn",
+        cpu: 72,
+        mem: 83,
+        disk: 64,
+        uptimeHours: 98,
+        lastSeen: "2분 전",
+      },
+      {
+        id: "c",
+        name: "c 중소기업 서버",
+        ip: "10.0.1.5",
+        os: "Ubuntu 22.04",
+        containers: 6,
+        health: "down",
+        cpu: 0,
+        mem: 0,
+        disk: 0,
+        uptimeHours: 0,
+        lastSeen: "연결 끊김",
+      },
+    ],
+    []
+  );
 
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setAdding(true);
-    try {
-      const srv = await registerServer(companyId, { name: name.trim(), description: description.trim() || null });
-      setServers(prev => [...prev, srv]);
-      setName(""); setDescription(""); setShowForm(false);
-    } catch { alert("서버 등록 실패"); } finally { setAdding(false); }
-  };
-
-  const handleDelete = async (serverId) => {
-    if (!confirm("서버를 삭제하시겠습니까?")) return;
-    await deleteServer(companyId, serverId);
-    setServers(prev => prev.filter(s => s.id !== serverId));
-  };
-
-  const installCmd = (srv) =>
-    `curl -fLO http://agent.monittoring.co.kr/metric-agent\nchmod +x metric-agent\nexport MONITORING_ID="${srv.monitoringId}"\nexport COLLECTOR_URL="${srv.collectorUrl}:80"\nexport SERVER_NAME="${srv.name}"\nsudo -E nohup ./metric-agent > metric.log 2>&1 &`;
+  const summary = useMemo(() => {
+    const total = servers.length;
+    const ok = servers.filter((s) => s.health === "ok").length;
+    const warn = servers.filter((s) => s.health === "warn").length;
+    const down = servers.filter((s) => s.health === "down").length;
+    return { total, ok, warn, down };
+  }, [servers]);
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: "32px 24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 22, color: "var(--text)" }}>서버 관리</h2>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--muted)" }}>모니터링할 서버를 등록하고 에이전트를 설치하세요.</p>
-        </div>
-        <button onClick={() => setShowForm(v => !v)} style={{ padding: "10px 20px", background: "#146ef5", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>
-          + 서버 추가
-        </button>
-      </div>
-
-      {showForm && (
-        <form onSubmit={handleAdd} style={{ background: "var(--surface2)", border: "1px solid rgba(20,110,245,0.2)", borderRadius: 10, padding: 24, marginBottom: 24 }}>
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6, color: "var(--text)" }}>서버 이름 *</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="예: production-web-01" required
-              style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 14, boxSizing: "border-box", background: "var(--surface)", color: "var(--text)" }} />
-          </div>
-          <div style={{ marginBottom: 18 }}>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6, color: "var(--text)" }}>설명 (선택)</label>
-            <input value={description} onChange={e => setDescription(e.target.value)} placeholder="예: 메인 웹 서버"
-              style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 14, boxSizing: "border-box", background: "var(--surface)", color: "var(--text)" }} />
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button type="submit" disabled={adding} style={{ padding: "10px 24px", background: "#146ef5", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>
-              {adding ? "등록 중..." : "등록"}
-            </button>
-            <button type="button" onClick={() => setShowForm(false)} style={{ padding: "10px 20px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 8, cursor: "pointer" }}>
-              취소
-            </button>
-          </div>
-        </form>
-      )}
-
-      {loading ? (
-        <div style={{ textAlign: "center", padding: 40, color: "var(--muted)" }}>불러오는 중...</div>
-      ) : servers.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 60, color: "var(--muted)", background: "var(--surface2)", borderRadius: 10, border: "1px dashed var(--border)" }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>🖥️</div>
-          <div style={{ fontSize: 15 }}>등록된 서버가 없습니다.</div>
-          <div style={{ fontSize: 13, marginTop: 4 }}>위 버튼으로 서버를 추가하세요.</div>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {servers.map(srv => (
-            <div key={srv.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ display: "flex", alignItems: "center", padding: "16px 20px", cursor: "pointer" }} onClick={() => setExpandedId(expandedId === srv.id ? null : srv.id)}>
-                <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#52c41a", marginRight: 12 }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 15, color: "var(--text)" }}>{srv.name}</div>
-                  {srv.description && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{srv.description}</div>}
-                </div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginRight: 16 }}>등록일 {new Date(srv.createdAt).toLocaleDateString("ko-KR")}</div>
-                <button onClick={e => { e.stopPropagation(); handleDelete(srv.id); }}
-                  style={{ padding: "4px 12px", background: "transparent", color: "#ff4d4f", border: "1px solid #ffccc7", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>삭제</button>
-              </div>
-              {expandedId === srv.id && (
-                <div style={{ borderTop: "1px solid var(--border)", padding: "16px 20px", background: "var(--surface2)" }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#146ef5", marginBottom: 10 }}>에이전트 설치 명령어</div>
-                  <pre style={{ background: "#1a1a2e", color: "#a8ff78", padding: 16, borderRadius: 8, fontSize: 12, overflowX: "auto", margin: 0, lineHeight: 1.8 }}>
-                    {installCmd(srv)}
-                  </pre>
-                  <button onClick={() => navigator.clipboard.writeText(installCmd(srv))}
-                    style={{ marginTop: 10, padding: "6px 16px", background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>
-                    📋 복사
-                  </button>
-                </div>
-              )}
+    <div className="servers">
+      <div className="servers__grid">
+        <section className="card">
+          <div className="card__title">서버 요약</div>
+          <div className="stats">
+            <div className="stat">
+              <div className="stat__label">전체</div>
+              <div className="stat__value">{summary.total}</div>
             </div>
-          ))}
-        </div>
-      )}
+            <div className="stat">
+              <div className="stat__label">정상</div>
+              <div className="stat__value">{summary.ok}</div>
+            </div>
+            <div className="stat">
+              <div className="stat__label">주의</div>
+              <div className="stat__value">{summary.warn}</div>
+            </div>
+            <div className="stat">
+              <div className="stat__label">오프라인</div>
+              <div className="stat__value">{summary.down}</div>
+            </div>
+          </div>
+          <div className="card__hint">
+            지금은 목업 데이터로 보여주고 있고, API 붙이면 그대로 실데이터로 바뀌게
+            구조 잡아놨어.
+          </div>
+        </section>
+
+        <section className="card card--table">
+          <div className="card__head">
+            <div>
+              <div className="card__title">서버 목록</div>
+              <div className="card__sub">서버를 클릭하면 상세 페이지로 이동</div>
+            </div>
+            <div className="chip">VPC: 10.0.0.0/16</div>
+          </div>
+
+          <div className="tableWrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>상태</th>
+                  <th>서버</th>
+                  <th>IP</th>
+                  <th>컨테이너</th>
+                  <th>CPU</th>
+                  <th>RAM</th>
+                  <th>Disk</th>
+                  <th>업타임</th>
+                  <th>마지막 수집</th>
+                </tr>
+              </thead>
+              <tbody>
+                {servers.map((s) => (
+                  <tr
+                    key={s.id}
+                    className="row"
+                    onClick={() => {
+                      navigate(`/servers/${s.id}`, { state: { server: s } });
+                    }}
+                  >
+                    <td>
+                      {s.health === "ok" && <StatusPill tone="ok" label="정상" />}
+                      {s.health === "warn" && <StatusPill tone="warn" label="주의" />}
+                      {s.health === "down" && (
+                        <StatusPill tone="down" label="오프라인" />
+                      )}
+                    </td>
+
+                    <td>
+                      <div className="serverName">{s.name}</div>
+                      <div className="serverMeta">{s.os}</div>
+                    </td>
+
+                    <td className="mono">{s.ip}</td>
+                    <td className="mono">{s.containers}</td>
+                    <td className="mono">{s.cpu}%</td>
+                    <td className="mono">{s.mem}%</td>
+                    <td className="mono">{s.disk}%</td>
+                    <td className="mono">{formatUptime(s.uptimeHours)}</td>
+                    <td>{s.lastSeen}</td>
+                  </tr>
+                ))}
+
+                {servers.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="emptyRow">
+                      서버 데이터가 없어
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="tableHint">
+            서버 상세 페이지에서는 컨테이너별 상태 비교, 기간별 지표 확인까지 한 번에
+            가능하게 설계.
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

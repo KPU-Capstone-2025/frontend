@@ -1,24 +1,11 @@
 :root {
-  font-family: "Pretendard Variable", Pretendard, system-ui, Helvetica, Arial, sans-serif;
+  font-family: "Pretendard Variable", Pretendard, system-ui, Avenir, Helvetica,
+    Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  --bg:        #f5f8ff;
-  --surface:   #ffffff;
-  --surface2:  #f7faff;
-  --text:      #080808;
-  --muted:     #5a5a5a;
-  --accent:    #146ef5;
-  --accent-h:  #0055d4;
-  --border:    #d8d8d8;
-  --border2:   #898989;
-  --error:     #ee1d36;
-  --warn:      #ffae13;
-  --good:      #00a51a;
-  --shadow:    0 54px 22px rgba(0,0,0,0.01), 0 30px 18px rgba(0,0,0,0.04), 0 13px 13px rgba(0,0,0,0.08), 0 3px 7px rgba(0,0,0,0.09);
-
-  color: var(--text);
-  background-color: var(--bg);
+  color: #111111;
+  background-color: #ffffff;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -26,167 +13,49 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-:root[data-theme="dark"] {
-  --bg:        #080d17;
-  --surface:   #111827;
-  --surface2:  #172033;
-  --text:      #f6f8ff;
-  --muted:     #a8b3c7;
-  --accent:    #3b89ff;
-  --accent-h:  #6aa7ff;
-  --border:    rgba(255,255,255,0.12);
-  --border2:   rgba(255,255,255,0.22);
-  --error:     #ff6475;
-  --warn:      #ffbf3f;
-  --good:      #36df6c;
-  --shadow:    0 30px 24px rgba(0,0,0,0.24), 0 10px 18px rgba(0,0,0,0.28), 0 3px 7px rgba(0,0,0,0.32);
-}
-
 body {
   margin: 0;
   display: block;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--bg);
-  color: var(--text);
 }
 
-h1 { margin: 0; }
+/* 기본 여백들 정리 (컴포넌트 CSS에서 컨트롤) */
+h1 {
+  margin: 0;
+}
 
 a {
   font-weight: 500;
-  color: var(--accent);
+  color: #646cff;
   text-decoration: inherit;
 }
-a:hover { color: var(--accent-h); }
+a:hover {
+  color: #535bf2;
+}
 
+/* 전역 button 스타일 제거/약화: 컴포넌트(.top__login 등)에서만 스타일링 */
 button {
-  all: unset;
+  all: unset;         
   font: inherit;
   color: inherit;
   cursor: pointer;
 }
 
+/* 접근성 */
 button:focus-visible {
-  outline: 3px solid rgba(20, 110, 245, 0.32);
+  outline: 3px solid rgba(11, 43, 255, 0.45);
   outline-offset: 4px;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
-:root[data-theme="dark"] .unifiedPanel,
-:root[data-theme="dark"] .unifiedMetricCard,
-:root[data-theme="dark"] .liveChartCard,
-:root[data-theme="dark"] .containerWorkspace__list,
-:root[data-theme="dark"] .containerWorkspace__detail,
-:root[data-theme="dark"] .agentHero__left,
-:root[data-theme="dark"] .agentCard,
-:root[data-theme="dark"] .logPanel,
-:root[data-theme="dark"] .logTableCard,
-:root[data-theme="dark"] .detailCard,
-:root[data-theme="dark"] .panel,
-:root[data-theme="dark"] .chatbotHero,
-:root[data-theme="dark"] .chatbotPanel {
-  background: var(--surface);
-  border-color: var(--border);
-  color: var(--text);
-}
-
-:root[data-theme="dark"] .liveChartCard__plot,
-:root[data-theme="dark"] .liveChartStats__item,
-:root[data-theme="dark"] .containerEmptyState,
-:root[data-theme="dark"] .agentCard__body,
-:root[data-theme="dark"] .installInfo,
-:root[data-theme="dark"] .cardInner,
-:root[data-theme="dark"] .containerCard,
-:root[data-theme="dark"] .codeBlock,
-:root[data-theme="dark"] .topNav,
-:root[data-theme="dark"] .logsSearchRow,
-:root[data-theme="dark"] .logTableHead,
-:root[data-theme="dark"] .logTableFoot {
-  background: var(--surface2);
-  border-color: var(--border);
-  color: var(--text);
-}
-
-:root[data-theme="dark"] .containerNameItem,
-:root[data-theme="dark"] .chatbotPromptBtn,
-:root[data-theme="dark"] .numInput,
-:root[data-theme="dark"] .searchInput,
-:root[data-theme="dark"] .logPill,
-:root[data-theme="dark"] .btn,
-:root[data-theme="dark"] .btnBlack,
-:root[data-theme="dark"] .agentBtn {
-  background: var(--surface);
-  border-color: var(--border);
-  color: var(--text);
-}
-
-:root[data-theme="dark"] .sectionTitle,
-:root[data-theme="dark"] .unifiedMetricCard__value,
-:root[data-theme="dark"] .liveChartCard__title,
-:root[data-theme="dark"] .liveChartCard__value,
-:root[data-theme="dark"] .agentHero__title,
-:root[data-theme="dark"] .agentCard__title,
-:root[data-theme="dark"] .stepItem__title,
-:root[data-theme="dark"] .logsTitle,
-:root[data-theme="dark"] .alertsTitle,
-:root[data-theme="dark"] .chatbotTitle,
-:root[data-theme="dark"] .chatbotEmptyTitle {
-  color: var(--text);
-}
-
-:root[data-theme="dark"] .unifiedIntro__desc,
-:root[data-theme="dark"] .agentHero__desc,
-:root[data-theme="dark"] .agentCard__sub,
-:root[data-theme="dark"] .logsDesc,
-:root[data-theme="dark"] .alertsDesc,
-:root[data-theme="dark"] .chatbotDesc,
-:root[data-theme="dark"] .chatbotEmptyDesc {
-  color: var(--muted);
-}
-
-:root[data-theme="dark"] .appShell :where(h1, h2, h3, p, div, span, strong, label, td, th, button, input, textarea, select, pre, code) {
-  color: var(--text) !important;
-}
-
-:root[data-theme="dark"] .appShell :where(
-  .unifiedIntro__desc,
-  .unifiedMetricCard__sub,
-  .liveChartCard__unit,
-  .liveChartStats__label,
-  .containerEmptyState__desc,
-  .agentHero__desc,
-  .agentCard__sub,
-  .installInfo__title,
-  .logsDesc,
-  .panelP,
-  .th,
-  .timeSub,
-  .alertsDesc,
-  .panelSub,
-  .fieldHint,
-  .unit,
-  .suffix,
-  .chatbotDesc,
-  .chatbotEmptyDesc,
-  .profileMenu__company span
-) {
-  color: var(--muted) !important;
-}
-
-:root[data-theme="dark"] .appShell :where(
-  .sectionEyebrow,
-  .topNav__item.is-active,
-  .topNav__item:hover,
-  .profileButton__avatar,
-  .agentHero__eyebrow,
-  .agentCard__icon,
-  .stepItem__num,
-  .liveChartDetails__toggle
-) {
-  color: var(--accent) !important;
-}
-
-:root[data-theme="dark"] .appShell :where(.profileMenu__item.is-danger, .statusPill.is-bad, .trendChip.is-up) {
-  color: var(--error) !important;
+/* 라이트/다크 선호에 따른 기본 색 (지금은 흰 배경 고정이라 유지) */
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #111111;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
 }

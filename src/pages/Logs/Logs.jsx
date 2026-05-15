@@ -1,202 +1,283 @@
 import { useState, useEffect, useCallback } from "react";
 import "./logs.css";
 import { getStoredSession, buildCompanyDisplayName } from "../../services/authStorage.js";
-import { getLogs, analyzeLog, getServers } from "../../services/monitoringApi.js";
-
-/**
- * [수정사항]
- * 1. 백엔드 MonitoringModule의 getLogs 응답 구조(body, severity) 파싱 로직 정밀화
- * 2. timestamp를 백엔드 포맷(나노/밀리초)에 맞게 안전하게 변환
- */
-function parseCleanText(rawBody) {
-  try {
-    const parsed = JSON.parse(rawBody);
-    return parsed.body || rawBody;
-  } catch (e) {
-    return rawBody;
-  }
-}
+import { fetchLogs, getLogFilterOptions } from "../../services/logApi.js";
 
 export default function Logs() {
   const session = getStoredSession();
   const companyId = session?.id || "";
   const companyName = buildCompanyDisplayName(session);
 
-  const [logs, setLogs] = useState({ items: [] });
-  const [globalCounts, setGlobalCounts] = useState({ all: 0, ERROR: 0, WARN: 0, INFO: 0 });
+  const [logs, setLogs] = useState({ items: [], total: 0, counts: { total: 0, ERROR: 0, WARN: 0, INFO: 0 }, containers: [] });
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [expandedLogId, setExpandedLogId] = useState(null);
-  const [filters, setFilters] = useState({ level: "all", q: "" });
-  const [servers, setServers] = useState([]);
-  const [selectedServer, setSelectedServer] = useState(null);
+  const [error, setError] = useState("");
+  const [filters, setFilters] = useState({ sourceType: "all", level: "all", q: "", page: 1, timeRange: "24h" });
 
-  const [aiAnalysis, setAiAnalysis] = useState({});
-  const [analyzingId, setAnalyzingId] = useState(null);
+  const filterOptions = getLogFilterOptions(logs.containers);
+
+  const loadLogs = useCallback(async (silent = false) => {
+    if (!companyId) return;
+
+    if (silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    if (!silent) setError("");
+
+    try {
+      const result = await fetchLogs({
+        companyId,
+        sourceType: filters.sourceType,
+        level: filters.level,
+        q: filters.q,
+        page: filters.page,
+        timeRange: filters.timeRange,
+      });
+      setLogs(result);
+    } catch (err) {
+      setError(err?.message || "로그 조회 실패");
+    } finally {
+      if (silent) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
+    }
+  }, [companyId, filters]);
+
+  useEffect(() => {
+    loadLogs(false);
+  }, [loadLogs]);
 
   useEffect(() => {
     if (!companyId) return;
-    getServers(companyId).then(list => setServers(Array.isArray(list) ? list : [])).catch(() => {});
-  }, [companyId]);
 
-  const loadLogs = useCallback(async () => {
-    if (!companyId) return;
-    setLoading(true);
+    const timerId = window.setInterval(() => {
+      loadLogs(true);
+    }, 5000);
 
-    try {
-      const data = await getLogs(companyId, {
-        limit: 100,
-        keyword: filters.q,
-        severity: filters.level === "all" ? "" : filters.level
-      }, selectedServer);
+    return () => window.clearInterval(timerId);
+  }, [companyId, loadLogs]);
 
-      const mapped = (data || []).map((item, idx) => {
-        // 백엔드 timestamp 처리 (문자열인 경우 숫자로 변환)
-        const tsString = String(item.timestamp);
-        const ts = Number(tsString.length > 13 ? tsString.slice(0, 13) : tsString);
-        const dateObj = new Date(ts);
+  const pageNumbers = Array.from({ length: logs.totalPages || 1 }, (_, i) => i + 1);
+  const levelLabelMap = { all: "전체", ERROR: "오류", WARN: "경고", INFO: "일반" };
 
-        return {
-          id: `log-${ts}-${idx}`,
-          time: dateObj.toLocaleTimeString("ko-KR", { hour12: false }),
-          date: dateObj.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit", weekday: "short" }),
-          level: item.severity || "INFO",
-          text: parseCleanText(item.body || item.rawMessage),
-          serverName: item.hostName || null
-        };
-      });
+  function levelClass(level) {
+    const lower = (level || "INFO").toLowerCase();
+    if (lower.includes("error")) return "error";
+    if (lower.includes("warn")) return "warn";
+    return "info";
+  }
 
-      setLogs({ items: mapped });
+  function riskLabel(risk) {
+    if (risk === "danger") return "위험";
+    if (risk === "warn") return "주의";
+    return "정상";
+  }
 
-      if (filters.level === "all" && filters.q === "") {
-        setGlobalCounts({
-          all: mapped.length,
-          ERROR: mapped.filter(l => l.level === "ERROR").length,
-          WARN: mapped.filter(l => l.level === "WARN").length,
-          INFO: mapped.filter(l => l.level === "INFO").length,
-        });
-      }
-    } catch (err) {
-      console.error("로그 조회 실패");
-    } finally {
-      setLoading(false);
-    }
-  }, [companyId, filters, selectedServer]);
-
-  useEffect(() => { loadLogs(); }, [loadLogs]);
-
-  async function handleAiAnalysis(e, item) {
-    e.stopPropagation(); 
-    if (aiAnalysis[item.id]) { setExpandedLogId(prev => prev === item.id ? null : item.id); return; }
-    setAnalyzingId(item.id);
-    try {
-      const result = await analyzeLog(item.text);
-      setAiAnalysis(prev => ({ ...prev, [item.id]: result }));
-      setExpandedLogId(item.id); 
-    } catch (err) {
-      alert("AI 분석 실패");
-    } finally {
-      setAnalyzingId(null);
-    }
+  function toggleRow(item) {
+    if (!item.interpretation) return;
+    setExpandedLogId((prev) => (prev === item.id ? null : item.id));
   }
 
   return (
     <div className="logsPage">
       <div className="logsWrap">
         <div className="logsTitle">로그 분석</div>
-        <div className="logsDesc">{companyName} 시스템 로그 실시간 모니터링</div>
+        <div className="logsDesc">시스템 로그를 실시간으로 모니터링합니다.</div>
 
-        {servers.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--muted)" }}>서버</span>
-            <button onClick={() => setSelectedServer(null)}
-              style={{ padding: "5px 14px", borderRadius: 20, border: "1px solid", fontSize: 12, cursor: "pointer", background: !selectedServer ? "#146ef5" : "var(--surface2)", color: !selectedServer ? "#fff" : "var(--text)", borderColor: !selectedServer ? "#146ef5" : "var(--border)" }}>
-              전체
-            </button>
-            {servers.map(s => (
-              <button key={s.id} onClick={() => setSelectedServer(s.name)}
-                style={{ padding: "5px 14px", borderRadius: 20, border: "1px solid", fontSize: 12, cursor: "pointer", background: selectedServer === s.name ? "#146ef5" : "var(--surface2)", color: selectedServer === s.name ? "#fff" : "var(--text)", borderColor: selectedServer === s.name ? "#146ef5" : "var(--border)" }}>
-                🖥️ {s.name}
-              </button>
-            ))}
+        {error && (
+          <div style={{ padding: "12px 16px", marginBottom: 12, background: "#fdf2f2", border: "1px solid #d92d20", borderRadius: 6, color: "#d92d20" }}>
+            {error}
           </div>
         )}
 
         <div className="logPanel">
           <div className="filterRow">
-            <div className="sourceTabs" role="tablist">
-              {["all", "ERROR", "WARN", "INFO"].map((lv) => (
-                <button 
-                  key={lv} 
-                  type="button" 
-                  className={`sourceTab ${filters.level === lv ? "on" : ""}`} 
-                  onClick={() => setFilters({ ...filters, level: lv })}
-                  style={{ color: lv === "ERROR" && filters.level === "ERROR" ? '#dc2626' : (lv === "WARN" && filters.level === "WARN" ? '#ea580c' : '') }}
+            <div className="sourceTabs" role="tablist" aria-label="로그 구분">
+              <button
+                type="button"
+                className={`sourceTab ${filters.sourceType === "all" ? "on" : ""}`}
+                onClick={() => setFilters({ ...filters, sourceType: "all", page: 1 })}
+              >
+                전체
+              </button>
+              <button
+                type="button"
+                className={`sourceTab ${filters.sourceType === "host" ? "on" : ""}`}
+                onClick={() => setFilters({ ...filters, sourceType: "host", page: 1 })}
+              >
+                호스트
+              </button>
+              <button
+                type="button"
+                className={`sourceTab ${filters.sourceType === "container" ? "on" : ""}`}
+                onClick={() => setFilters({ ...filters, sourceType: "container", page: 1 })}
+              >
+                컨테이너
+              </button>
+            </div>
+
+            <div className="sourceTabs" role="tablist" aria-label="시간 범위">
+              {filterOptions.timeRanges.map((gr) => (
+                <button
+                  key={gr.key}
+                  type="button"
+                  className={`sourceTab ${filters.timeRange === gr.key ? "on" : ""}`}
+                  onClick={() => setFilters({ ...filters, timeRange: gr.key, page: 1 })}
                 >
-                  {lv === "all" ? "전체" : lv} <span>({globalCounts[lv]})</span>
+                  {gr.label}
                 </button>
               ))}
             </div>
-            <div className="searchBox">
-              <input className="searchInput" type="text" placeholder="로그 키워드 검색..." value={filters.q} onChange={(e) => setFilters({ ...filters, q: e.target.value })} />
+
+            <div className="sourceTabs" role="tablist" aria-label="로그 유형">
+              {filterOptions.levels.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  className={`sourceTab ${filters.level === l ? "on" : ""}`}
+                  onClick={() => setFilters({ ...filters, level: l, page: 1 })}
+                >
+                  {levelLabelMap[l] || l}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
+        <div className="summaryRow">
+          <div>
+            <div className="summaryTitle">총 {logs.total}개 로그</div>
+            <div className="summaryBadges">
+              <span className="sumChip error">ERROR {logs.counts.ERROR}</span>
+              <span className="sumChip warn">WARN {logs.counts.WARN}</span>
+              <span className="sumChip info">INFO {logs.counts.INFO}</span>
+            </div>
+          </div>
+          {(loading || refreshing) && <div className="loadingTxt">{loading ? "로드 중..." : "실시간 갱신 중..."}</div>}
+        </div>
+
         <div className="logTableCard">
-          <div className="logTableHead" style={{ display: 'grid', gridTemplateColumns: '170px 100px minmax(0, 1fr)', padding: '12px 14px', background: 'var(--surface2)', borderBottom: '1px solid var(--border)' }}>
+          <div className="logsSearchRow">
+            <input
+              className="searchInput logsSearchInput"
+              type="text"
+              placeholder="로그 본문 검색"
+              value={filters.q}
+              onChange={(e) => setFilters({ ...filters, q: e.target.value, page: 1 })}
+            />
+          </div>
+          <div className="logTableHead">
             <div className="th">시간</div>
-            <div className="th">레벨</div>
+            <div className="th">유형</div>
+            <div className="th">구분</div>
             <div className="th">로그 메시지</div>
           </div>
 
-          <div className="logTableBody" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-            {loading && logs.items.length === 0 ? <div className="emptyState">로딩 중...</div> : 
-             logs.items.length === 0 ? <div className="emptyState">로그가 없습니다.</div> : (
-              logs.items.map((item) => {
-                const isErrorOrWarn = item.level === "ERROR" || item.level === "WARN";
-                const hasAnalysis = !!aiAnalysis[item.id];
-                
-                return (
-                  <div key={item.id} className={`logRow ${hasAnalysis ? "expandable" : ""} ${expandedLogId === item.id ? "active" : ""}`}
-                       onClick={() => hasAnalysis && setExpandedLogId(prev => prev === item.id ? null : item.id)}
-                       style={{ display: 'grid', gridTemplateColumns: '170px 100px minmax(0, 1fr)', padding: '12px 14px', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-
-                    <div className="td timeCell">
-                      <div className="timeMain mono">{item.time}</div>
-                      <div className="timeSub">{item.date}</div>
-                      {item.serverName && <div style={{ fontSize: 10, color: '#146ef5', marginTop: 2, fontWeight: 600 }}>🖥️ {item.serverName}</div>}
-                    </div>
-
-                    <div className="td"><span className={`lv ${item.level.toLowerCase()}`}>{item.level}</span></div>
-
-                    <div className="td msgCol" style={{ display: 'block' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                        <div className="msgText" style={{ wordBreak: 'break-all', whiteSpace: 'normal', flex: 1, paddingRight: '15px' }}>{item.text}</div>
-                        
-                        {isErrorOrWarn && !hasAnalysis && (
-                          <button onClick={(e) => handleAiAnalysis(e, item)} disabled={analyzingId === item.id} style={{ 
-                            padding: '6px 12px', background: '#eef2ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' 
-                          }}>
-                            {analyzingId === item.id ? "🤖 분석 중..." : "🔎 AI 분석"}
-                          </button>
-                        )}
-                        {hasAnalysis && <div style={{ fontSize: '12px', color: '#16a34a', fontWeight: 'bold', whiteSpace: 'nowrap' }}>✓ 분석완료 ▾</div>}
-                      </div>
-
-                      {hasAnalysis && expandedLogId === item.id && (
-                        <div className="interpretPanel" style={{ marginTop: '10px', padding: '15px', background: '#f8fafc', borderLeft: '4px solid #3b82f6', borderRadius: '4px' }}>
-                          <div className="interpretRow">
-                            <span className="interpretKey" style={{ color: '#2563eb', fontWeight: 'bold', marginRight: '10px' }}>🤖 AI 가이드:</span>
-                            <span className="interpretVal" style={{ lineHeight: '1.6' }}>{aiAnalysis[item.id]}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+          <div className="logTableBody">
+            {loading ? (
+              <div className="emptyState">로그를 불러오는 중입니다...</div>
+            ) : logs.items.length === 0 ? (
+              <div className="emptyState">조건에 맞는 로그가 없습니다.</div>
+            ) : (
+              logs.items.map((item) => (
+                <div
+                  key={item.id}
+                  className={`logRow ${item.interpretation ? "expandable" : ""} ${expandedLogId === item.id ? "active" : ""}`}
+                  onClick={() => toggleRow(item)}
+                  role={item.interpretation ? "button" : undefined}
+                  tabIndex={item.interpretation ? 0 : undefined}
+                  onKeyDown={(e) => {
+                    if (!item.interpretation) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleRow(item);
+                    }
+                  }}
+                >
+                  <div className="td timeCell">
+                    <div className="timeMain mono">{item.time}</div>
+                    <div className="timeSub">{item.date}</div>
                   </div>
-                );
-              })
+                  <div className="td">
+                    <span className={`lv ${levelClass(item.level)}`}>{item.level}</span>
+                  </div>
+                  <div className="td">
+                    <span className={`sourceBadge ${item.sourceType}`}>
+                      {item.sourceType === "container" ? item.source : item.sourceLabel}
+                    </span>
+                  </div>
+                  <div className="td msgCol">
+                    <div className="msgText">{item.text}</div>
+                    {item.interpretation ? (
+                      <div className="msgHint clickable">
+                        <span className={`riskBadge ${item.interpretation.risk || "normal"}`}>{riskLabel(item.interpretation.risk)}</span>
+                        <span>해석: {item.interpretation.title || "-"}</span>
+                        <span className={`rowArrow ${expandedLogId === item.id ? "open" : ""}`}>▾</span>
+                      </div>
+                    ) : (
+                      <div className="msgHint muted">해석 없음</div>
+                    )}
+                    {item.interpretation && expandedLogId === item.id && (
+                      <div className="interpretPanel">
+                        <div className="interpretRow">
+                          <span className="interpretKey">원인</span>
+                          <span className="interpretVal">{item.interpretation.detail || "-"}</span>
+                        </div>
+                        {item.interpretation.action && (
+                          <div className="interpretRow">
+                            <span className="interpretKey">조치방안</span>
+                            <span className="interpretVal">{item.interpretation.action}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
             )}
           </div>
+
+          {logs.totalPages > 1 && (
+            <div className="logTableFoot">
+              <div className="rangeTxt">페이지 {logs.page} / {logs.totalPages}</div>
+              <div className="pager">
+                <button
+                  type="button"
+                  className="pagerBtn"
+                  onClick={() => setFilters({ ...filters, page: Math.max(1, filters.page - 1) })}
+                  disabled={filters.page <= 1}
+                >
+                  이전
+                </button>
+                <div className="pagerNums">
+                  {pageNumbers.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className={`pagerNum ${p === filters.page ? "on" : ""}`}
+                      onClick={() => setFilters({ ...filters, page: p })}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="pagerBtn"
+                  onClick={() => setFilters({ ...filters, page: Math.min(logs.totalPages, filters.page + 1) })}
+                  disabled={filters.page >= logs.totalPages}
+                >
+                  다음
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

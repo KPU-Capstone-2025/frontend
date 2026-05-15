@@ -1,42 +1,42 @@
-.alertsPage {
+.alertsPage{
   padding: 18px 18px 26px;
-  background: var(--bg, #0d1117);
+  background: var(--bg);
   min-height: calc(100vh - 64px);
-  color: var(--text, #e8edf5);
+  color: var(--text);
 }
 
-.alertsWrap {
+.alertsWrap{
   width: 100%;
-  max-width: var(--contentMax, 1600px);
+  max-width: var(--contentMax);
   margin: 0 auto;
 }
 
-.alertsTitle {
+.alertsTitle{
   margin: 6px 0 6px;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 900;
   letter-spacing: -0.02em;
-  color: #ffffff;
 }
 
-.alertsDesc {
+.alertsDesc{
   margin: 0 0 18px;
-  color: #7b8ea6;
+  color: var(--muted);
   font-size: 13px;
 }
 
-/* ===== Panel ===== */
-.panel {
-  background: #161c2d;
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 8px;
-  box-shadow: rgba(0,0,0,0.3) 0px 8px 8px;
+.panel{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radiusLg);
+  box-shadow: var(--shadow);
   padding: 16px;
 }
 
-.panel + .panel { margin-top: 14px; }
+.panel + .panel{
+  margin-top: 14px;
+}
 
-.panelHead {
+.panelHead{
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -44,202 +44,228 @@
   margin-bottom: 14px;
 }
 
-.panelTitleRow {
+.panelTitleRow{
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.panelIcon {
+.panelIcon{
   width: 34px;
   height: 34px;
-  border-radius: 50%;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  background: rgba(77,132,245,0.14);
-  border: 1px solid rgba(77,132,245,0.24);
-  color: #4d84f5;
-  font-weight: 700;
+  background: rgba(11,43,255,0.12);
+  border: 1px solid rgba(11,43,255,0.20);
+  color: var(--blue);
+  font-weight: 900;
 }
 
-.panelTitle {
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: #ffffff;
+.panelTitle{
+  font-weight: 900;
+  letter-spacing: -0.02em;
 }
 
-.panelSub {
+.panelSub{
   margin-top: 3px;
-  color: #7b8ea6;
+  color: var(--muted);
   font-size: 12px;
 }
 
-.panelActions { display: flex; align-items: center; gap: 10px; }
+.panelActions{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-/* ===== Buttons ===== */
-.btn {
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 9999px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.05);
-  font-weight: 700;
-  font-size: 12px;
-  color: #e8edf5;
+.btn{
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,42,0.14);
+  background: #fff;
+  font-weight: 900;
   cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 1.4px;
-  transition: background 0.15s ease, transform 0.15s ease;
 }
 
-.btn:hover   { background: rgba(255,255,255,0.08); transform: translateY(-1px); }
-.btn:active  { transform: translateY(0); }
+.btn:active{ transform: translateY(1px); }
 
-.btnPrimary {
-  background: rgba(77,132,245,0.2);
-  border-color: rgba(77,132,245,0.4);
-  color: #8ab4f8;
+.btnPrimary{
+  background: var(--blue);
+  border-color: rgba(11,43,255,0.35);
+  color: #fff;
 }
 
-.btnPrimary:hover { background: rgba(77,132,245,0.28); }
-
-.btnBlack {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.12);
-  color: #ffffff;
+.btnBlack{
+  background: #0b1220;
+  border-color: rgba(0,0,0,0.12);
+  color: #fff;
 }
 
-/* ===== Card Inner ===== */
-.cardInner {
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.03);
+.cardInner{
+  border-radius: 18px;
+  border: 1px solid rgba(15,23,42,0.10);
+  background: #fff;
   padding: 14px;
 }
 
-/* ===== Seg Tabs ===== */
-.segTabs {
+.segTabs{
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  background: rgba(255,255,255,0.05);
-  padding: 5px;
-  border-radius: 9999px;
-  border: 1px solid rgba(255,255,255,0.07);
+  gap: 10px;
+  background: rgba(15,23,42,0.06);
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(15,23,42,0.08);
   margin: 6px 0 14px;
 }
 
-.segTab {
-  height: 32px;
-  border-radius: 9999px;
+.segTab{
+  height: 34px;
+  border-radius: 999px;
   border: 1px solid transparent;
   background: transparent;
-  font-weight: 700;
-  font-size: 12px;
-  color: #7b8ea6;
+  font-weight: 900;
+  color: rgba(15,23,42,0.68);
   cursor: pointer;
+
+  display: flex;               /* 가운데 정렬을 확실하게 하기 위해 flex 사용 */
+  align-items: center;
+  justify-content: center;     /* 텍스트 완전 중앙 정렬 */
+  text-align: center;
+}
+
+
+.segTab.isOn{
+  background: #fff;
+  border-color: rgba(15,23,42,0.10);
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(15,23,42,0.08);
+}
+
+.grid2{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.grid2 + .grid2{ margin-top: 10px; }
+
+.field{
+  display: grid;
+  gap: 7px;
+}
+
+.fieldLabel{
+  font-size: 12px;
+  font-weight: 900;
+  color: rgba(15,23,42,0.78);
+}
+
+.fieldHint{
+  margin-top: -3px;
+  font-size: 11px;
+  color: rgba(15,23,42,0.55);
+}
+
+.inputRow{
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  transition: background 0.15s ease, color 0.15s ease;
+  gap: 10px;
 }
 
-.segTab.isOn {
-  background: rgba(77,132,245,0.2);
-  border-color: rgba(77,132,245,0.35);
-  color: #ffffff;
-  box-shadow: rgba(0,0,0,0.3) 0px 4px 8px;
-}
-
-/* ===== Grid ===== */
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.grid2 + .grid2 { margin-top: 10px; }
-
-.field { display: grid; gap: 7px; }
-
-.fieldLabel {
-  font-size: 12px;
-  font-weight: 700;
-  color: #b3b3b3;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.fieldHint { margin-top: -3px; font-size: 11px; color: #7b8ea6; }
-
-.inputRow { display: flex; align-items: center; gap: 10px; }
-
-.numInput {
+.numInput{
   width: 100%;
-  height: 36px;
-  border-radius: 9999px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  padding: 0 14px;
-  font-weight: 700;
-  color: #e8edf5;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(15,23,42,0.06);
+  border: 1px solid rgba(15,23,42,0.10);
+  padding: 0 12px;
+  font-weight: 900;
   letter-spacing: -0.01em;
-  transition: border-color 0.2s ease;
 }
 
-.numInput:focus {
-  outline: none;
-  border-color: rgba(77,132,245,0.5);
-  box-shadow: 0 0 0 3px rgba(77,132,245,0.12);
+.unit{
+  color: rgba(15,23,42,0.58);
+  font-weight: 900;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
-.unit   { color: #7b8ea6; font-weight: 700; font-size: 12px; white-space: nowrap; }
-.suffix { margin-left: auto; color: #7b8ea6; font-weight: 700; font-size: 12px; white-space: nowrap; }
+.suffix{
+  margin-left: auto;
+  color: rgba(15,23,42,0.45);
+  font-weight: 900;
+  font-size: 12px;
+  white-space: nowrap;
+}
 
-/* ===== Checkboxes ===== */
-.checkRow {
+.checkRow{
   display: flex;
-  align-items: flex-start;
+  align-items: flex-start;   /* 위쪽 기준 정렬 */
   gap: 10px;
   margin-top: 16px;
-  padding-left: 2px;
+  padding-left: 2px;        /* 인풋 시작선이랑 맞추려고 살짝 보정 */
 }
 
-.checkRow input { width: 16px; height: 16px; accent-color: #4d84f5; }
 
-.checkTxt { display: flex; flex-direction: column; gap: 2px; text-align: left; }
-.checkTitle { font-weight: 700; font-size: 12px; color: #e8edf5; }
-.checkSub   { font-size: 11px; color: #7b8ea6; }
+.checkRow input{ width: 16px; height: 16px; }
 
-/* ===== Docker Empty ===== */
-.dockerEmpty {
-  border-radius: 8px;
-  border: 1px dashed rgba(255,255,255,0.12);
+.checkTxt{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;        /* 혹시 모를 가운데 정렬 방지 */
+}
+
+.checkTitle{
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.checkSub{
+  font-size: 11px;
+  color: rgba(15,23,42,0.55);
+}
+
+.dockerEmpty{
+  border-radius: 18px;
+  border: 1px dashed rgba(15,23,42,0.18);
   padding: 22px 18px;
   display: grid;
   place-items: center;
-  color: #7b8ea6;
+  color: rgba(15,23,42,0.55);
   gap: 10px;
 }
 
-.cube {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.1);
+.cube{
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  border: 1px solid rgba(15,23,42,0.12);
   display: grid;
   place-items: center;
-  color: #7b8ea6;
-  font-weight: 700;
+  color: rgba(15,23,42,0.45);
+  font-weight: 900;
 }
 
-.checkRowFull { display: flex; align-items: center; gap: 10px; }
-.dockerList { display: grid; gap: 12px; }
+.checkRowFull{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-.containerCard {
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.03);
+.dockerList{ display: grid; gap: 12px; }
+
+.containerCard{
+  border-radius: 18px;
+  border: 1px solid rgba(15,23,42,0.10);
+  background: #fff;
   padding: 14px;
 }
 
-.containerHead {
+.containerHead{
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -247,144 +273,27 @@
   margin-bottom: 10px;
 }
 
-.containerTitle { font-weight: 700; letter-spacing: -0.01em; color: #ffffff; }
-
-.iconBtn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.04);
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  color: #b3b3b3;
-  transition: background 0.15s ease;
+.containerTitle{
+  font-weight: 900;
+  letter-spacing: -0.02em;
 }
 
-.iconBtn:hover { background: rgba(255,255,255,0.08); }
+.iconBtn{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,42,0.12);
+  background: #fff;
+  cursor: pointer;
+}
 
-.nameBlock { display: grid; gap: 6px; margin-bottom: 12px; }
+.iconBtn:hover{ background: rgba(15,23,42,0.04); }
 
-.footerActions {
+.nameBlock{ display: grid; gap: 6px; margin-bottom: 12px; }
+
+.footerActions{
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 14px;
-}
-
-/* Light dashboard theme */
-.alertsPage {
-  background: transparent;
-  color: var(--text);
-}
-
-.alertsTitle,
-.panelTitle,
-.containerTitle,
-.checkTitle {
-  color: var(--text);
-  letter-spacing: 0;
-}
-
-.alertsDesc,
-.panelSub,
-.fieldHint,
-.unit,
-.suffix,
-.checkSub {
-  color: var(--muted);
-}
-
-.panel,
-.cardInner,
-.containerCard {
-  background: #ffffff;
-  border: 1px solid #d8d8d8;
-  box-shadow: var(--shadow);
-}
-
-.cardInner,
-.containerCard {
-  background: #f8fbff;
-  box-shadow: none;
-  border-color: rgba(20, 110, 245, 0.14);
-}
-
-.panelIcon,
-.cube {
-  border-radius: 8px;
-  background: rgba(20, 110, 245, 0.1);
-  border-color: rgba(20, 110, 245, 0.22);
-  color: #146ef5;
-}
-
-.btn,
-.btnBlack,
-.iconBtn {
-  border-radius: 8px;
-  background: #ffffff;
-  border-color: #d8d8d8;
-  color: var(--text);
-}
-
-.btn:hover,
-.iconBtn:hover {
-  background: #f7faff;
-  border-color: rgba(20, 110, 245, 0.32);
-}
-
-.btnPrimary {
-  background: #146ef5;
-  border-color: #146ef5;
-  color: #ffffff;
-}
-
-.btnPrimary:hover {
-  background: #0055d4;
-}
-
-.segTabs {
-  background: #f8fbff;
-  border-color: rgba(20, 110, 245, 0.14);
-  border-radius: 8px;
-}
-
-.segTab {
-  border-radius: 8px;
-  color: var(--muted);
-}
-
-.segTab.isOn {
-  background: rgba(20, 110, 245, 0.12);
-  border-color: rgba(20, 110, 245, 0.28);
-  color: #0b57d0;
-  box-shadow: none;
-}
-
-.fieldLabel {
-  color: #363636;
-}
-
-.numInput {
-  border-radius: 8px;
-  background: #ffffff;
-  border-color: #d8d8d8;
-  color: var(--text);
-  letter-spacing: 0;
-}
-
-.numInput:focus {
-  border-color: rgba(20, 110, 245, 0.5);
-  box-shadow: 0 0 0 3px rgba(20, 110, 245, 0.12);
-}
-
-.checkRow input {
-  accent-color: #146ef5;
-}
-
-.dockerEmpty {
-  background: #f8fbff;
-  border-color: rgba(20, 110, 245, 0.24);
-  color: var(--muted);
 }
