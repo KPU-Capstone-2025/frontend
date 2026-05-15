@@ -33,6 +33,12 @@ function normalizeRisk(rawRisk, severity) {
 
 function parseTimestampToMs(value, fallback = Date.now()) {
   if (!value) return fallback;
+  const str = String(value);
+  // Loki timestamps are nanoseconds (16+ digits) — strip last 6 digits to get ms
+  if (/^\d{16,}$/.test(str)) {
+    const ms = parseInt(str.slice(0, str.length - 6), 10);
+    return Number.isFinite(ms) ? ms : fallback;
+  }
   const parsed = new Date(value).getTime();
   return Number.isFinite(parsed) ? parsed : fallback;
 }
@@ -90,7 +96,9 @@ function normalizeLogEntry(log, idx) {
 
   const level = normalizeSeverity(log?.severity);
   const sourceTypeRaw = String(log?.sourceType || "").toLowerCase();
-  const sourceType = sourceTypeRaw === "container" ? "container" : "host";
+  const sourceType = (sourceTypeRaw === "container" || sourceTypeRaw === "docker")
+    ? "container"
+    : "host";
 
   const source =
     String(log?.sourceName || "") ||
@@ -158,11 +166,13 @@ export async function fetchLogs({
   }
 
   const response = await getLogs(companyId, { limit });
-  const list = Array.isArray(response?.results)
-    ? response.results
-    : Array.isArray(response?.containers)
-      ? response.containers
-      : [];
+  const list = Array.isArray(response?.result)
+    ? response.result
+    : Array.isArray(response?.results)
+      ? response.results
+      : Array.isArray(response?.containers)
+        ? response.containers
+        : [];
 
   const normalized = list
     .map((it, idx) => normalizeLogEntry(it, idx))
