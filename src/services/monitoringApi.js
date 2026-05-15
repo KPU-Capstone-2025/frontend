@@ -42,7 +42,7 @@ export const getLogs = (id, params, hostName) => request(`/dashboard/${id}/logs`
 export const analyzeLog = (logContent) => request(`/dashboard/logs/analyze`, { method: "POST", body: { logContent } }).then(r => r.analysis);
 
 // 날짜별 위험 알림 요약
-export const getDailyAlertRaw = (id, date) => request(`/dashboard/${id}/alerts/daily/raw`, { query: { date } });
+export const getDailyAlertRaw = (id, date, hostName) => request(`/dashboard/${id}/alerts/daily/raw`, { query: hostName ? { date, hostName } : { date } });
 export const getDailyAlertSummary = (id, date) => request(`/dashboard/${id}/alerts/daily`, { query: { date } });
 
 // 멀티서버 / 이상감지 / 예측
@@ -57,5 +57,6 @@ export const deleteServer = (companyId, serverId) => request(`/servers/${company
 
 // 알람 설정 및 챗봇
 export const updateAlertRules = (data) => request("/rules/update", { method: "POST", body: data });
+export const getAlertRules = (companyId, hostName) => request(`/rules/${companyId}`, { query: hostName ? { hostName } : {} });
 export const askChatbot = (monitoringId, question) => request(`/chat/ask`, { method: "POST", body: { monitoringId, question } });
 export const getChatHistory = (monitoringId) => request(`/chat/history/${monitoringId}`);

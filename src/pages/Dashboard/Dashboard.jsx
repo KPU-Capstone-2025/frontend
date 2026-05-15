@@ -12,7 +12,13 @@ const POLLING_INTERVAL = 3000;
 const CPU_ALERT_THRESHOLD = 85;
 const CHART_HEIGHT = 220;
 const CHART_WIDTH = 520;
-const MAX_DATA_POINTS = 30;
+const MAX_STORE_POINTS = 1200;
+const TIME_RANGES = [
+  { label: "1분",   points: 20 },
+  { label: "10분",  points: 200 },
+  { label: "30분",  points: 600 },
+  { label: "1시간", points: 1200 },
+];
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const dashboardRuntimeStore = new Map();
@@ -208,10 +214,10 @@ async function fetchHostAndContainers(companyId) {
     const prevHostMetrics = prev.hostData?.hostMetrics || { cpu: [], memory: [], disk: [], network: [] };
     
     const nextHostMetrics = {
-      cpu: [...prevHostMetrics.cpu, { t: now, v: hostRes?.cpuUsage || 0 }].slice(-MAX_DATA_POINTS),
-      memory: [...prevHostMetrics.memory, { t: now, v: hostRes?.memoryUsage || 0 }].slice(-MAX_DATA_POINTS),
-      disk: [...prevHostMetrics.disk, { t: now, v: hostRes?.diskUsage || 0 }].slice(-MAX_DATA_POINTS),
-      network: [...prevHostMetrics.network, { t: now, v: (hostRes?.networkTraffic || 0) / (1024 * 1024) }].slice(-MAX_DATA_POINTS)
+      cpu: [...prevHostMetrics.cpu, { t: now, v: hostRes?.cpuUsage || 0 }].slice(-MAX_STORE_POINTS),
+      memory: [...prevHostMetrics.memory, { t: now, v: hostRes?.memoryUsage || 0 }].slice(-MAX_STORE_POINTS),
+      disk: [...prevHostMetrics.disk, { t: now, v: hostRes?.diskUsage || 0 }].slice(-MAX_STORE_POINTS),
+      network: [...prevHostMetrics.network, { t: now, v: (hostRes?.networkTraffic || 0) / 1024 }].slice(-MAX_STORE_POINTS)
     };
 
     return {
@@ -235,9 +241,9 @@ async function fetchContainerMetricsSnapshot(companyId, containerId, { showLoadi
       const prevMetricsObj = prev.containerMetricsById[containerId] || { metrics: { cpu: [], memory: [], network: [] } };
       
       const nextMetrics = {
-        cpu: [...prevMetricsObj.metrics.cpu, { t: now, v: res?.cpuUsage || 0 }].slice(-MAX_DATA_POINTS),
-        memory: [...prevMetricsObj.metrics.memory, { t: now, v: res?.memoryUsage || 0 }].slice(-MAX_DATA_POINTS),
-        network: [...prevMetricsObj.metrics.network, { t: now, v: res?.networkTraffic || 0 }].slice(-MAX_DATA_POINTS)
+        cpu: [...prevMetricsObj.metrics.cpu, { t: now, v: res?.cpuUsage || 0 }].slice(-MAX_STORE_POINTS),
+        memory: [...prevMetricsObj.metrics.memory, { t: now, v: res?.memoryUsage || 0 }].slice(-MAX_STORE_POINTS),
+        network: [...prevMetricsObj.metrics.network, { t: now, v: res?.networkTraffic || 0 }].slice(-MAX_STORE_POINTS)
       };
 
       return {
@@ -540,6 +546,11 @@ export default function Dashboard() {
   const [alertModal, setAlertModal] = useState(null);
   const [alertModalLoading, setAlertModalLoading] = useState(false);
   const [selectedHost, setSelectedHost] = useState(() => companyId ? (getRuntime(companyId).selectedHost || null) : null);
+  const [timeRange, setTimeRange] = useState(() => {
+    const saved = localStorage.getItem("dashboard_time_range");
+    return TIME_RANGES.find(r => r.label === saved) ?? TIME_RANGES[1];
+  });
+  const handleTimeRange = (r) => { setTimeRange(r); localStorage.setItem("dashboard_time_range", r.label); };
   const changeHost = (host) => {
     if (companyId) {
       const isSameHost = getRuntime(companyId).selectedHost === host;
@@ -641,6 +652,7 @@ export default function Dashboard() {
   const selectedContainer = useMemo(() => containers.find((item) => item.containerId === selectedContainerId) || null, [containers, selectedContainerId]);
 
   const hostMetrics = hostData?.hostMetrics || {};
+  const sr = (series) => (series ?? []).slice(-timeRange.points);
   const hostCpuDanger = isCpuDanger(lastOf(hostMetrics.cpu));
   const containerCpuDanger = isCpuDanger(lastOf(containerMetrics?.metrics?.cpu));
 
@@ -671,7 +683,7 @@ export default function Dashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
         {anomaly?.anomalies?.some(a => a.isAnomaly) ? (
           <div style={{ background: "var(--surface)", border: "1px solid #ffccc7", borderRadius: 10, padding: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "#ff4d4f", marginBottom: 12 }}>⚠️ 이상 감지</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#ff4d4f", marginBottom: 12 }}>이상 감지</div>
             {anomaly.anomalies.filter(a => a.isAnomaly).map(a => (
               <div key={a.metric} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
                 <span style={{ fontSize: 13, color: "var(--text)" }}>{a.metric.replace("system_", "").replace("_usage", "").toUpperCase()}</span>
@@ -686,11 +698,11 @@ export default function Dashboard() {
           </div>
         ) : (
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 20, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: 13 }}>
-            ✅ 이상 감지 없음
+             이상 감지 없음
           </div>
         )}
         <div style={{ background: "var(--surface)", border: `1px solid ${recentErrorLogs.length > 0 ? "#ffccc7" : "var(--border)"}`, borderRadius: 10, padding: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: recentErrorLogs.length > 0 ? "#ff4d4f" : "var(--text)", marginBottom: 12 }}>🔍 최근 오류 로그 분석</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: recentErrorLogs.length > 0 ? "#ff4d4f" : "var(--text)", marginBottom: 12 }}> 최근 오류 로그 분석</div>
           {recentErrorLogs.length === 0 ? (
             <div style={{ color: "var(--muted)", fontSize: 13 }}>최근 ERROR / WARN 로그가 없습니다.</div>
           ) : (
@@ -725,7 +737,7 @@ export default function Dashboard() {
         onAlertClick={async (date) => {
           setAlertModal({ date, loading: true, analyzing: false });
           try {
-            const data = await getDailyAlertRaw(companyId, date);
+            const data = await getDailyAlertRaw(companyId, date, selectedHost);
             setAlertModal({ ...data, loading: false, analyzing: false, summary: null });
           } catch {
             setAlertModal({ date, loading: false, analyzing: false, summary: null, alerts: [], errorLogs: [] });
@@ -804,13 +816,25 @@ export default function Dashboard() {
           <MetricCard title="CPU 사용률" value={formatValue(lastOf(hostMetrics.cpu), "%")} sub={hostCpuDanger ? "위험" : "정상"} danger={hostCpuDanger} />
           <MetricCard title="메모리 사용량" value={formatValue(lastOf(hostMetrics.memory), "%")} sub="물리적 점유" />
           <MetricCard title="디스크 사용량" value={formatValue(lastOf(hostMetrics.disk), "%")} sub="전체 용량 대비" />
-          <MetricCard title="네트워크" value={formatValue(lastOf(hostMetrics.network), "MB/s")} sub="In/Out 합계" />
+          <MetricCard title="네트워크" value={formatValue(lastOf(hostMetrics.network), "KB/s")} sub="In/Out 합계" />
         </div>
         <div className="chartGrid chartGrid--host">
-          <LiveChartCard title="CPU 사용률" currentValue={lastOf(hostMetrics.cpu)} unit="%" rawSeries={hostMetrics.cpu} danger={hostCpuDanger} />
-          <LiveChartCard title="메모리 사용량" currentValue={lastOf(hostMetrics.memory)} unit="%" rawSeries={hostMetrics.memory} />
-          <LiveChartCard title="디스크 사용량" currentValue={lastOf(hostMetrics.disk)} unit="%" rawSeries={hostMetrics.disk} />
-          <LiveChartCard title="네트워크 트래픽" currentValue={lastOf(hostMetrics.network)} unit="MB/s" rawSeries={hostMetrics.network} />
+          <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 700 }}>그래프 범위</span>
+            {TIME_RANGES.map(r => (
+              <button key={r.label} onClick={() => handleTimeRange(r)}
+                style={{ padding: "4px 12px", borderRadius: 16, border: "1px solid", fontSize: 12, cursor: "pointer", fontWeight: 700,
+                  background: timeRange.label === r.label ? "#146ef5" : "var(--surface2)",
+                  color: timeRange.label === r.label ? "#fff" : "var(--text)",
+                  borderColor: timeRange.label === r.label ? "#146ef5" : "var(--border)" }}>
+                {r.label}
+              </button>
+            ))}
+          </div>
+          <LiveChartCard title="CPU 사용률" currentValue={lastOf(hostMetrics.cpu)} unit="%" rawSeries={sr(hostMetrics.cpu)} danger={hostCpuDanger} />
+          <LiveChartCard title="메모리 사용량" currentValue={lastOf(hostMetrics.memory)} unit="%" rawSeries={sr(hostMetrics.memory)} />
+          <LiveChartCard title="디스크 사용량" currentValue={lastOf(hostMetrics.disk)} unit="%" rawSeries={sr(hostMetrics.disk)} />
+          <LiveChartCard title="네트워크 트래픽" currentValue={lastOf(hostMetrics.network)} unit="KB/s" rawSeries={sr(hostMetrics.network)} />
         </div>
       </section>
 
@@ -836,9 +860,9 @@ export default function Dashboard() {
               <ContainerEmptyState hasContainers={containers.length > 0} />
             ) : !loadingMetrics ? (
               <div className="chartGrid chartGrid--container">
-                <LiveChartCard title="컨테이너 CPU" currentValue={lastOf(containerMetrics?.metrics?.cpu)} unit="%" rawSeries={containerMetrics?.metrics?.cpu || []} danger={containerCpuDanger} sensitivity="high" />
-                <LiveChartCard title="컨테이너 메모리" currentValue={lastOf(containerMetrics?.metrics?.memory)} unit="%" rawSeries={containerMetrics?.metrics?.memory || []} sensitivity="high" />
-                <LiveChartCard title="컨테이너 네트워크" currentValue={lastOf(containerMetrics?.metrics?.network)} unit="MB/s" rawSeries={containerMetrics?.metrics?.network || []} sensitivity="high" />
+                <LiveChartCard title="컨테이너 CPU" currentValue={lastOf(containerMetrics?.metrics?.cpu)} unit="%" rawSeries={sr(containerMetrics?.metrics?.cpu)} danger={containerCpuDanger} sensitivity="high" />
+                <LiveChartCard title="컨테이너 메모리" currentValue={lastOf(containerMetrics?.metrics?.memory)} unit="%" rawSeries={sr(containerMetrics?.metrics?.memory)} sensitivity="high" />
+                <LiveChartCard title="컨테이너 네트워크" currentValue={lastOf(containerMetrics?.metrics?.network)} unit="KB/s" rawSeries={sr(containerMetrics?.metrics?.network)} sensitivity="high" />
               </div>
             ) : <div className="unifiedSkeleton" style={{ height: 200 }} />}
           </div>

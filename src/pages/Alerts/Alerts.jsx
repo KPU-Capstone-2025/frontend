@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "./alerts.css";
 import { getStoredSession } from "../../services/authStorage.js";
-import { updateAlertRules, getServers } from "../../services/monitoringApi.js";
+import { updateAlertRules, getServers, getAlertRules } from "../../services/monitoringApi.js";
 
 const STORAGE_KEY = "monittoring_alert_rules";
 const DEFAULT_RULES = {
@@ -100,10 +100,23 @@ export default function Alerts() {
   }, [companyId]);
 
   useEffect(() => {
-    const loaded = loadSavedRules(selectedServer);
-    setSavedRules(loaded);
-    setRules(loaded ?? DEFAULT_RULES);
-  }, [selectedServer]);
+    if (!companyId) return;
+    getAlertRules(companyId, selectedServer)
+      .then(data => {
+        if (data && data.cpuThreshold != null) {
+          setSavedRules(data);
+          setRules(data);
+        } else {
+          setSavedRules(null);
+          setRules(DEFAULT_RULES);
+        }
+      })
+      .catch(() => {
+        const loaded = loadSavedRules(selectedServer);
+        setSavedRules(loaded);
+        setRules(loaded ?? DEFAULT_RULES);
+      });
+  }, [companyId, selectedServer]);
 
   // 다른 탭에서 저장 시 동기화
   useEffect(() => {
