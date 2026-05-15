@@ -709,6 +709,18 @@ export async function getContainerMetrics(
   );
 }
 
+export async function getAlertRules(companyId, { signal } = {}) {
+  return fetchJson(`${API_BASE_URL}/rules/${companyId}`, { signal });
+}
+
+export async function updateAlertRules(request, { signal } = {}) {
+  return fetchJson(`${API_BASE_URL}/rules/update`, {
+    method: "POST",
+    body: JSON.stringify(request),
+    signal,
+  });
+}
+
 export async function analyzeLog(logContent, { signal } = {}) {
   return fetchJson(`${API_BASE_URL}/dashboard/logs/analyze`, {
     method: "POST",
