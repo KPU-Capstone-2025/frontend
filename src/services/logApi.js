@@ -1,4 +1,4 @@
-import { getLogs } from "./monitoringApi.js";
+import { getLogs, analyzeLog } from "./monitoringApi.js";
 
 const LEVELS = ["ERROR", "WARN", "INFO"];
 
@@ -177,6 +177,41 @@ export async function fetchLogs({
   const normalized = list
     .map((it, idx) => normalizeLogEntry(it, idx))
     .sort((a, b) => b.ts - a.ts);
+
+  // AI 분석: ERROR/WARN 로그 상위 5개, 최대 8초 이내 완료 안되면 스킵
+  const toAnalyze = normalized
+    .filter((row) => (row.level === "ERROR" || row.level === "WARN") && !row.interpretation)
+    .slice(0, 5);
+
+  if (toAnalyze.length > 0) {
+    try {
+      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 8000));
+      const analysis = Promise.allSettled(toAnalyze.map((row) => analyzeLog(row.text)));
+      const results = await Promise.race([analysis, timeout]);
+      if (Array.isArray(results)) {
+        const analysisMap = {};
+        toAnalyze.forEach((row, idx) => {
+          const r = results[idx];
+          if (r?.status === "fulfilled" && r.value?.analysis) {
+            analysisMap[row.id] = r.value.analysis;
+          }
+        });
+        normalized.forEach((row) => {
+          if (analysisMap[row.id]) {
+            row.interpretation = {
+              title: "AI 로그 분석",
+              detail: analysisMap[row.id],
+              action: "",
+              risk: row.level === "ERROR" ? "danger" : "warn",
+              needsAction: false,
+            };
+          }
+        });
+      }
+    } catch {
+      // AI 분석 실패 시 무시하고 로그만 표시
+    }
+  }
 
   const now = Date.now();
   const windowMs = timeRangeToMs(timeRange);

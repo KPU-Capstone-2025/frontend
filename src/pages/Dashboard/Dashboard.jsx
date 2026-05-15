@@ -5,6 +5,7 @@ import {
   getContainerMetrics,
   getContainers,
   getHostOverview,
+  getUserUsage,
   mergeContainerMetricsSnapshot,
   mergeHostSnapshot,
 } from "../../services/monitoringApi.js";
@@ -28,7 +29,16 @@ function createInitialSnapshot() {
     selectedContainerId: "",
     containerMetricsById: {},
     loadingMetricsById: {},
+    userUsage: [],
   };
+}
+
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return "0 B";
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
+  if (mb >= 1) return `${mb.toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
 function getRuntime(companyId) {
@@ -301,9 +311,10 @@ function calcTrend(series = []) {
 }
 
 async function fetchHostAndContainers(companyId) {
-  const [hostRes, containersRes] = await Promise.all([
+  const [hostRes, containersRes, userRes] = await Promise.all([
     getHostOverview(companyId),
     getContainers(companyId),
+    getUserUsage(companyId).catch(() => []),
   ]);
 
   const nextContainers = Array.isArray(containersRes) ? containersRes : [];
@@ -325,6 +336,7 @@ async function fetchHostAndContainers(companyId) {
       containers: nextContainers,
       selectedContainerId:
         hasPrevSelected ? prev.selectedContainerId : nextContainers[0]?.id || "",
+      userUsage: Array.isArray(userRes) ? userRes : [],
     };
   });
 }
@@ -635,6 +647,7 @@ export default function Dashboard() {
     selectedContainerId,
     containerMetricsById,
     loadingMetricsById,
+    userUsage,
   } = view;
 
   const containerMetrics = containerMetricsById[selectedContainerId] || null;
@@ -794,6 +807,31 @@ export default function Dashboard() {
             value={formatValue(host?.networkTraffic, host?.networkUnit || "MB/s")}
             sub="최근 수집 기준"
           />
+
+          <div className="unifiedMetricCard userMetricCard">
+            <div className="unifiedMetricCard__title">현재 사용자</div>
+            <div className="unifiedMetricCard__value">{userUsage.length}<span style={{ fontSize: 14, fontWeight: 700, marginLeft: 4 }}>명</span></div>
+            <div className="userMiniList">
+              {userUsage.length === 0 ? (
+                <div className="userMiniEmpty">접속자 없음</div>
+              ) : (
+                userUsage.map((user) => {
+                  const cpuDanger = user.cpuUsage >= CPU_ALERT_THRESHOLD;
+                  const cpuWarn = user.cpuUsage >= 60;
+                  return (
+                    <div key={user.username} className="userMiniRow">
+                      <span className="userMiniAvatar">{user.username[0]?.toUpperCase() || "?"}</span>
+                      <span className="userMiniName">{user.username}</span>
+                      <span className={`userMiniCpu ${cpuDanger ? "danger" : cpuWarn ? "warn" : ""}`}>
+                        {user.cpuUsage.toFixed(1)}%
+                      </span>
+                      <span className="userMiniMem">{formatBytes(user.memoryBytes)}</span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="chartGrid chartGrid--host">
@@ -1030,6 +1068,7 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
     </div>
   );
 }

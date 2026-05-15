@@ -709,6 +709,30 @@ export async function getContainerMetrics(
   );
 }
 
+export async function analyzeLog(logContent, { signal } = {}) {
+  return fetchJson(`${API_BASE_URL}/dashboard/logs/analyze`, {
+    method: "POST",
+    body: JSON.stringify({ logContent }),
+    signal,
+  });
+}
+
+export async function getUserUsage(companyId, { signal } = {}) {
+  return withMockFallback(
+    async () => {
+      const data = await fetchJson(`${API_BASE_URL}/dashboard/${companyId}/users`, { signal });
+      return Array.isArray(data) ? data : [];
+    },
+    async () => {
+      await sleep(120);
+      return [
+        { username: "ubuntu", cpuUsage: 12.5, memoryBytes: 256 * 1024 * 1024 },
+        { username: "root", cpuUsage: 3.2, memoryBytes: 64 * 1024 * 1024 },
+      ];
+    }
+  );
+}
+
 export async function getLogs(
   companyId,
   { limit = 100, query, demo, signal } = {}
