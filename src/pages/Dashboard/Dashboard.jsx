@@ -622,6 +622,7 @@ export default function Dashboard() {
   const [view, setView] = useState(() =>
     companyId ? getRuntime(companyId).snapshot : createInitialSnapshot()
   );
+  const [userModalOpen, setUserModalOpen] = useState(false);
 
   useEffect(() => {
     if (!companyId) {
@@ -810,27 +811,20 @@ export default function Dashboard() {
 
           <div className="unifiedMetricCard userMetricCard">
             <div className="unifiedMetricCard__title">현재 사용자</div>
-            <div className="unifiedMetricCard__value">{userUsage.length}<span style={{ fontSize: 14, fontWeight: 700, marginLeft: 4 }}>명</span></div>
-            <div className="userMiniList">
-              {userUsage.length === 0 ? (
-                <div className="userMiniEmpty">접속자 없음</div>
-              ) : (
-                userUsage.map((user) => {
-                  const cpuDanger = user.cpuUsage >= CPU_ALERT_THRESHOLD;
-                  const cpuWarn = user.cpuUsage >= 60;
-                  return (
-                    <div key={user.username} className="userMiniRow">
-                      <span className="userMiniAvatar">{user.username[0]?.toUpperCase() || "?"}</span>
-                      <span className="userMiniName">{user.username}</span>
-                      <span className={`userMiniCpu ${cpuDanger ? "danger" : cpuWarn ? "warn" : ""}`}>
-                        {user.cpuUsage.toFixed(1)}%
-                      </span>
-                      <span className="userMiniMem">{formatBytes(user.memoryBytes)}</span>
-                    </div>
-                  );
-                })
-              )}
+            <div className="unifiedMetricCard__value">
+              {userUsage.length}
+              <span style={{ fontSize: 14, fontWeight: 700, marginLeft: 4 }}>명</span>
             </div>
+            <div className="unifiedMetricCard__sub">
+              {userUsage.length === 0 ? "접속자 없음" : `${userUsage.map(u => u.username).slice(0, 2).join(", ")}${userUsage.length > 2 ? ` 외 ${userUsage.length - 2}명` : ""}`}
+            </div>
+            <button
+              type="button"
+              className="userDetailBtn"
+              onClick={() => setUserModalOpen(true)}
+            >
+              상세 보기
+            </button>
           </div>
         </div>
 
@@ -1069,6 +1063,59 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {userModalOpen && (
+        <div className="userModal__overlay" onClick={() => setUserModalOpen(false)}>
+          <div className="userModal" onClick={(e) => e.stopPropagation()}>
+            <div className="userModal__head">
+              <div>
+                <div className="sectionEyebrow">USERS</div>
+                <h3 className="userModal__title">현재 접속 사용자 리소스</h3>
+              </div>
+              <button type="button" className="userModal__close" onClick={() => setUserModalOpen(false)}>✕</button>
+            </div>
+
+            <div className="userModal__table">
+              <div className="userModal__thead">
+                <div className="userModal__th">사용자</div>
+                <div className="userModal__th">CPU 사용률</div>
+                <div className="userModal__th">메모리 사용량</div>
+                <div className="userModal__th">상태</div>
+              </div>
+              {userUsage.length === 0 ? (
+                <div className="userModal__empty">접속 중인 사용자가 없습니다.</div>
+              ) : (
+                userUsage.map((user) => {
+                  const cpuDanger = user.cpuUsage >= CPU_ALERT_THRESHOLD;
+                  const cpuWarn = user.cpuUsage >= 60;
+                  return (
+                    <div key={user.username} className={`userModal__row ${cpuDanger ? "is-danger" : ""}`}>
+                      <div className="userModal__td userModal__td--name">
+                        <span className="userMiniAvatar">{user.username[0]?.toUpperCase() || "?"}</span>
+                        {user.username}
+                      </div>
+                      <div className="userModal__td">
+                        <div className="userUsageBar">
+                          <div
+                            className={`userUsageBarFill ${cpuDanger ? "danger" : cpuWarn ? "warn" : "normal"}`}
+                            style={{ width: `${Math.min(user.cpuUsage, 100)}%` }}
+                          />
+                        </div>
+                        <span className="userUsageVal">{user.cpuUsage.toFixed(1)}%</span>
+                      </div>
+                      <div className="userModal__td">{formatBytes(user.memoryBytes)}</div>
+                      <div className="userModal__td">
+                        <span className={`statusPill ${cpuDanger ? "is-bad" : cpuWarn ? "is-warn" : "is-good"}`}>
+                          {cpuDanger ? "위험" : cpuWarn ? "주의" : "정상"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
