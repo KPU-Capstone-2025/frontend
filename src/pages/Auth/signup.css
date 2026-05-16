@@ -1,14 +1,35 @@
+.authCard--signup {
+  max-width: 720px;
+  min-height: auto;
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.authRight--signup {
+  width: 100%;
+  max-width: 440px;
+  padding: 48px 56px 38px;
+  justify-content: flex-start;
+}
+
+.authRight--signup .authTitle {
+  margin: 0 0 22px;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
 .signupForm {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  margin-top: 18px;
+  gap: 14px;
+  margin-top: 0;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 .fieldLabel {
@@ -24,10 +45,10 @@
 .signupForm input,
 .signupForm select {
   width: 100%;
-  height: 44px;
+  height: 42px;
   padding: 0 14px;
   border: 1px solid #d0d5dd;
-  border-radius: 12px;
+  border-radius: 10px;
   font-size: 14px;
   color: #101828;
   background: #f8fafc;
@@ -39,6 +60,7 @@
 .signupForm select:focus {
   border-color: #2563eb;
   background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .birthRow {
@@ -84,7 +106,7 @@
 }
 
 .agreeBox {
-  margin-top: 4px;
+  margin-top: 2px;
   border-top: 1px solid #e5e7eb;
 }
 
@@ -98,7 +120,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 56px;
+  min-height: 46px;
   border-bottom: 1px solid #e5e7eb;
   font-size: 14px;
   color: #101828;
@@ -123,7 +145,40 @@
   color: #475467;
 }
 
+.authRight--signup .authBtn.primary {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.authRight--signup .authBack {
+  margin-top: 6px;
+}
+
+@media (max-width: 900px) {
+  .authCard--signup {
+    max-width: 560px;
+  }
+
+  .authRight--signup {
+    max-width: 100%;
+    padding: 40px;
+  }
+}
+
 @media (max-width: 640px) {
+  .authWrapper {
+    align-items: flex-start;
+    padding: 18px;
+  }
+
+  .authCard--signup {
+    max-width: 100%;
+  }
+
+  .authRight--signup {
+    padding: 32px 24px;
+  }
+
   .birthRow {
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
     gap: 6px;
