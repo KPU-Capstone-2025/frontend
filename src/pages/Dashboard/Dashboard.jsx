@@ -746,7 +746,7 @@ function DateSnapshotPanel({
           <div className="sectionEyebrow">DATE SNAPSHOT</div>
           <h3 className="dateSnapshotPanel__title">날짜별 리소스 요약</h3>
           <p className="sectionDesc">
-            캘린더 화면 대신, 필요한 날짜만 작게 선택해서 일별 수치를 확인합니다.
+            필요한 날짜만 작게 선택해서 일별 수치를 확인합니다.
           </p>
         </div>
 

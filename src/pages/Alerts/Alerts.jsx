@@ -216,7 +216,7 @@ export default function Alerts() {
       <div className="alertsWrap">
         <div className="alertsTitle">알림 설정</div>
         <div className="alertsDesc">
-          서버별 임계값을 설정하면 Prometheus Alertmanager와 이메일 알림에 반영됩니다.
+         서버 리소스 사용량이 기준을 초과하면 알림을 받을 수 있습니다.
         </div>
 
         {servers.length > 0 && (

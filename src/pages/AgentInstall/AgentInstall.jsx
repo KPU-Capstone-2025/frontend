@@ -172,7 +172,7 @@ export default function AgentInstall() {
         <SectionCard
           icon="🪪"
           title="현재 발급 정보"
-          sub="백엔드의 /api/company/agent/{companyId} 응답값을 그대로 사용합니다."
+          sub="설치에 필요한 서버 연결 정보입니다."
         >
           <div className="installInfo">
             <div className="installInfo__title">회사 정보</div>
@@ -203,7 +203,7 @@ export default function AgentInstall() {
               <div className="stepItem__body">
                 <div className="stepItem__title">에이전트 실행</div>
                 <div className="stepItem__desc">
-                  백엔드에서 내려준 MONITORING_ID와 COLLECTOR_URL을 그대로 사용합니다.
+                  서버 연결에 필요한 값이 자동으로 입력되어 있습니다.
                 </div>
                 <CodeBlock
                   code={curlCommand}
@@ -244,7 +244,7 @@ export default function AgentInstall() {
               <div className="stepItem__body">
                 <div className="stepItem__title">에이전트 실행</div>
                 <div className="stepItem__desc">
-                  백엔드에서 내려준 MONITORING_ID와 COLLECTOR_URL이 자동으로 반영됩니다.
+                  아래 명령어를 실행하면 모니터링이 자동으로 연결됩니다.
                 </div>
                 <CodeBlock
                   code={dockerRunCommand}
