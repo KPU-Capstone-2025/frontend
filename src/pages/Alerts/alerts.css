@@ -319,3 +319,81 @@
   font-weight: 700;
   margin-bottom: 12px;
 }
+
+.serverTabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.serverTab {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.serverTab.isOn {
+  background: var(--blue);
+  border-color: rgba(11, 43, 255, 0.35);
+  color: #fff;
+}
+
+.appliedRules {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.appliedRulesTitle {
+  margin-bottom: 10px;
+  color: #027a48;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.appliedRulesList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.appliedRuleChip {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.appliedRuleChip b {
+  color: var(--blue);
+}
+
+.grid1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.thresholdSingle {
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}

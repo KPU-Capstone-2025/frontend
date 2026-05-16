@@ -709,8 +709,11 @@ export async function getContainerMetrics(
   );
 }
 
-export async function getAlertRules(companyId, { signal } = {}) {
-  return fetchJson(`${API_BASE_URL}/rules/${companyId}`, { signal });
+export async function getAlertRules(companyId, { hostName, signal } = {}) {
+  const qs = new URLSearchParams();
+  if (hostName) qs.set("hostName", String(hostName));
+  const query = qs.toString();
+  return fetchJson(`${API_BASE_URL}/rules/${companyId}${query ? `?${query}` : ""}`, { signal });
 }
 
 export async function updateAlertRules(request, { signal } = {}) {
@@ -719,6 +722,38 @@ export async function updateAlertRules(request, { signal } = {}) {
     body: JSON.stringify(request),
     signal,
   });
+}
+
+
+export async function getServers(companyId, { signal } = {}) {
+  return withMockFallback(
+    async () => {
+      const data = await fetchJson(`${API_BASE_URL}/servers/${companyId}`, { signal });
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.result)) return data.result;
+      if (Array.isArray(data?.servers)) return data.servers;
+      return [];
+    },
+    async () => {
+      await sleep(120);
+      return [];
+    }
+  );
+}
+
+export async function askChatbot(monitoringId, question, { signal } = {}) {
+  return fetchJson(`${API_BASE_URL}/chat/ask`, {
+    method: "POST",
+    body: JSON.stringify({ monitoringId, question }),
+    signal,
+  });
+}
+
+export async function getChatHistory(monitoringId, { signal } = {}) {
+  const data = await fetchJson(`${API_BASE_URL}/chat/history/${encodeURIComponent(monitoringId)}`, {
+    signal,
+  });
+  return Array.isArray(data) ? data : [];
 }
 
 export async function analyzeLog(logContent, { signal } = {}) {
