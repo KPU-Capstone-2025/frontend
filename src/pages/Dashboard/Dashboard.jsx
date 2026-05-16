@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import "./dashboard.css";
 
 import {
@@ -286,6 +286,18 @@ function timeLabel(timestamp) {
   });
 }
 
+function tooltipTimeLabel(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
 function calcTrend(series = []) {
   if (!series.length) return { direction: "flat", text: "변화 없음" };
 
@@ -489,18 +501,16 @@ function LiveChartCard({
   danger = false,
   sensitivity = "normal",
 }) {
-  const smoothed = useMemo(
-    () => smoothSeries(rawSeries, unit, { sensitivity }),
-    [rawSeries, unit, sensitivity]
-  );
+  const chartRef = useRef(null);
+  const [hoveredPoint, setHoveredPoint] = useState(null);
 
   const geometry = useMemo(
     () =>
-      createChartGeometry(smoothed, {
+      createChartGeometry(rawSeries || [], {
         width: CHART_WIDTH,
         height: CHART_HEIGHT,
       }),
-    [smoothed]
+    [rawSeries]
   );
 
   const trend = useMemo(() => calcTrend(rawSeries), [rawSeries]);
@@ -514,6 +524,36 @@ function LiveChartCard({
     () => `chartArea-${title.replace(/\s+/g, "-").replace(/[^\w-]/g, "")}`,
     [title]
   );
+
+  function handleMouseMove(event) {
+    if (!chartRef.current || !geometry.points.length) return;
+
+    const rect = chartRef.current.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const svgX = mouseX * (CHART_WIDTH / rect.width);
+
+    let closest = geometry.points[0];
+    let minDistance = Math.abs(svgX - geometry.points[0].x);
+
+    geometry.points.forEach((point) => {
+      const distance = Math.abs(svgX - point.x);
+
+      if (distance < minDistance) {
+        closest = point;
+        minDistance = distance;
+      }
+    });
+
+    setHoveredPoint({
+      ...closest,
+      tooltipX: (closest.x / CHART_WIDTH) * rect.width,
+      tooltipY: (closest.y / CHART_HEIGHT) * rect.height,
+    });
+  }
+
+  function handleMouseLeave() {
+    setHoveredPoint(null);
+  }
 
   return (
     <div className={`liveChartCard ${danger ? "is-danger" : ""}`}>
@@ -531,7 +571,12 @@ function LiveChartCard({
         </div>
       </div>
 
-      <div className="liveChartCard__body">
+      <div
+        className="liveChartCard__body chartHoverArea"
+        ref={chartRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
         <svg
           className="liveChartSvg"
           viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
@@ -578,6 +623,24 @@ function LiveChartCard({
               className="chartDot"
             />
           ) : null}
+
+          {hoveredPoint ? (
+            <>
+              <line
+                x1={hoveredPoint.x}
+                y1="10"
+                x2={hoveredPoint.x}
+                y2={CHART_HEIGHT - 12}
+                className="chartHoverLine"
+              />
+              <circle
+                cx={hoveredPoint.x}
+                cy={hoveredPoint.y}
+                r="6"
+                className="chartHoverDot"
+              />
+            </>
+          ) : null}
         </svg>
 
         <div className="chartAxisY">
@@ -585,6 +648,28 @@ function LiveChartCard({
           <span>{geometry.mid.toFixed(unit === "%" ? 1 : 2)}</span>
           <span>{geometry.min.toFixed(unit === "%" ? 1 : 2)}</span>
         </div>
+
+        {hoveredPoint ? (
+          <div
+            className="chartTooltip"
+            style={{
+              left: `${Math.min(Math.max(hoveredPoint.tooltipX + 14, 12), 360)}px`,
+              top: `${Math.max(hoveredPoint.tooltipY - 14, 12)}px`,
+            }}
+          >
+            <div className="chartTooltip__title">{title}</div>
+
+            <div className="chartTooltip__row">
+              <span>시간</span>
+              <strong>{tooltipTimeLabel(hoveredPoint.t)}</strong>
+            </div>
+
+            <div className="chartTooltip__row">
+              <span>값</span>
+              <strong>{formatValue(hoveredPoint.rawValue, unit)}</strong>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="chartAxisX">
