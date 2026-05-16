@@ -5,6 +5,7 @@ import {
   getContainerMetrics,
   getContainers,
   getHostOverview,
+  getMonthlyMetrics,
   getUserUsage,
   mergeContainerMetricsSnapshot,
   mergeHostSnapshot,
@@ -31,6 +32,33 @@ function createInitialSnapshot() {
     loadingMetricsById: {},
     userUsage: [],
   };
+}
+
+
+function toDateInputValue(date = new Date()) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function shiftDateKey(dateKey, amount) {
+  const date = new Date(`${dateKey}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return toDateInputValue();
+  date.setDate(date.getDate() + amount);
+  return toDateInputValue(date);
+}
+
+function formatDateKey(dateKey) {
+  if (!dateKey) return "-";
+  const date = new Date(`${dateKey}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateKey;
+  return date.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
 }
 
 function formatBytes(bytes) {
@@ -683,6 +711,109 @@ function LiveChartCard({
   );
 }
 
+
+function DailyMetricTile({ label, stats, unit = "%" }) {
+  const latest = Number(stats?.latest ?? 0);
+  const avg = Number(stats?.avg ?? 0);
+
+  return (
+    <div className="dailyMetricTile">
+      <div className="dailyMetricTile__label">{label}</div>
+      <div className="dailyMetricTile__value">
+        {formatValue(latest, unit)}
+      </div>
+      <div className="dailyMetricTile__sub">평균 {formatValue(avg, unit)}</div>
+    </div>
+  );
+}
+
+function DateSnapshotPanel({
+  selectedDate,
+  onChangeDate,
+  dailyMetrics,
+  loading,
+  error,
+}) {
+  const host = dailyMetrics?.host;
+  const status = statusMeta(
+    dailyMetrics?.rawWorstStatus || dailyMetrics?.worstStatus || "healthy"
+  );
+
+  return (
+    <section className="dateSnapshotPanel">
+      <div className="dateSnapshotPanel__head">
+        <div>
+          <div className="sectionEyebrow">DATE SNAPSHOT</div>
+          <h3 className="dateSnapshotPanel__title">날짜별 리소스 요약</h3>
+          <p className="sectionDesc">
+            캘린더 화면 대신, 필요한 날짜만 작게 선택해서 일별 수치를 확인합니다.
+          </p>
+        </div>
+
+        <div className="datePickerCompact">
+          <button
+            type="button"
+            className="dateNavBtn"
+            onClick={() => onChangeDate(shiftDateKey(selectedDate, -1))}
+            aria-label="이전 날짜"
+          >
+            ‹
+          </button>
+          <input
+            type="date"
+            className="dateInputCompact"
+            value={selectedDate}
+            onChange={(event) => onChangeDate(event.target.value)}
+          />
+          <button
+            type="button"
+            className="dateNavBtn"
+            onClick={() => onChangeDate(shiftDateKey(selectedDate, 1))}
+            aria-label="다음 날짜"
+          >
+            ›
+          </button>
+          <button
+            type="button"
+            className="dateTodayBtn"
+            onClick={() => onChangeDate(toDateInputValue())}
+          >
+            오늘
+          </button>
+        </div>
+      </div>
+
+      <div className="dateSnapshotPanel__body">
+        <div className="dailySummaryCard">
+          <div className="dailySummaryCard__date">{formatDateKey(selectedDate)}</div>
+          <div className="dailySummaryCard__meta">
+            <span className={`statusPill ${status.className}`}>
+              {dailyMetrics?.hasData ? status.label : "데이터 없음"}
+            </span>
+            <span>알림 {dailyMetrics?.alertCount ?? 0}건</span>
+            <span>컨테이너 {dailyMetrics?.containers?.length ?? 0}개</span>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="dailyMetricLoading">선택한 날짜의 데이터를 불러오는 중입니다.</div>
+        ) : error ? (
+          <div className="dailyMetricEmpty">{error}</div>
+        ) : host ? (
+          <div className="dailyMetricTiles">
+            <DailyMetricTile label="CPU" stats={host.cpu} unit="%" />
+            <DailyMetricTile label="Memory" stats={host.memory} unit="%" />
+            <DailyMetricTile label="Disk" stats={host.disk} unit="%" />
+            <DailyMetricTile label="Network" stats={host.network} unit="KB/s" />
+          </div>
+        ) : (
+          <div className="dailyMetricEmpty">해당 날짜에 수집된 리소스 데이터가 없습니다.</div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function RefreshButton({ onClick, loading }) {
   return (
     <button
@@ -708,6 +839,12 @@ export default function Dashboard() {
     companyId ? getRuntime(companyId).snapshot : createInitialSnapshot()
   );
   const [userModalOpen, setUserModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(() => toDateInputValue());
+  const [dailySnapshot, setDailySnapshot] = useState({
+    loading: false,
+    error: "",
+    data: null,
+  });
 
   useEffect(() => {
     if (!companyId) {
@@ -722,6 +859,36 @@ export default function Dashboard() {
       unsubscribe();
     };
   }, [companyId]);
+
+  useEffect(() => {
+    if (!companyId || !selectedDate) {
+      setDailySnapshot({ loading: false, error: "", data: null });
+      return;
+    }
+
+    const controller = new AbortController();
+    const date = new Date(`${selectedDate}T00:00:00`);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+
+    setDailySnapshot((prev) => ({ ...prev, loading: true, error: "" }));
+
+    getMonthlyMetrics(companyId, { year, month, signal: controller.signal })
+      .then((res) => {
+        const selectedDay = res.days.find((day) => day.date === selectedDate) || null;
+        setDailySnapshot({ loading: false, error: "", data: selectedDay });
+      })
+      .catch((e) => {
+        if (e?.name === "AbortError") return;
+        setDailySnapshot({
+          loading: false,
+          error: e?.message || "날짜별 리소스 데이터를 불러오지 못했습니다.",
+          data: null,
+        });
+      });
+
+    return () => controller.abort();
+  }, [companyId, selectedDate]);
 
   const {
     loading,
@@ -846,6 +1013,14 @@ export default function Dashboard() {
       </div>
 
       {error ? <div className="unifiedError">{error}</div> : null}
+
+      <DateSnapshotPanel
+        selectedDate={selectedDate}
+        onChangeDate={setSelectedDate}
+        dailyMetrics={dailySnapshot.data}
+        loading={dailySnapshot.loading}
+        error={dailySnapshot.error}
+      />
 
       <section
         className={`unifiedPanel ${hostCpuDanger ? "unifiedPanel--danger" : ""}`}

@@ -347,6 +347,60 @@ function normalizeContainerMetricsResponse(payload) {
   };
 }
 
+
+function toDateKey(date = new Date()) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function normalizeMetricStats(stats = {}) {
+  return {
+    avg: round(stats.avg, 2),
+    min: round(stats.min, 2),
+    max: round(stats.max, 2),
+    latest: round(stats.latest, 2),
+  };
+}
+
+function normalizeMonthlyMetricsResponse(payload = {}) {
+  const raw = payload?.result || payload || {};
+  const days = Array.isArray(raw.days) ? raw.days : [];
+
+  return {
+    year: raw.year,
+    month: raw.month,
+    startDate: raw.startDate,
+    endDate: raw.endDate,
+    days: days.map((day) => ({
+      date: day.date,
+      hasData: !!day.hasData,
+      worstStatus: mapBackendStatus(day.worstStatus),
+      rawWorstStatus: day.worstStatus || "UNKNOWN",
+      alertCount: clampNumber(day.alertCount, 0),
+      host: day.host
+        ? {
+            cpu: normalizeMetricStats(day.host.cpu),
+            memory: normalizeMetricStats(day.host.memory),
+            disk: normalizeMetricStats(day.host.disk),
+            network: normalizeMetricStats(day.host.network),
+          }
+        : null,
+      containers: Array.isArray(day.containers)
+        ? day.containers.map((container) => ({
+            containerId: container.containerId,
+            status: mapBackendStatus(container.status),
+            rawStatus: container.status || "UNKNOWN",
+            cpu: normalizeMetricStats(container.cpu),
+            memory: normalizeMetricStats(container.memory),
+            network: normalizeMetricStats(container.network),
+          }))
+        : [],
+    })),
+  };
+}
+
 function mockWave(base, tick, amplitude, min = 0, max = 100) {
   const noise = (Math.random() - 0.5) * amplitude * 0.55;
   const swing = Math.sin(tick / 2.8) * amplitude;
@@ -437,6 +491,47 @@ function getMockContainerMetricPayload(containerId) {
       networkTraffic: networkKb * 1024,
     },
   };
+}
+
+
+function buildMockMonthlyMetricsPayload(year, month) {
+  const now = new Date();
+  const safeYear = Number(year) || now.getFullYear();
+  const safeMonth = Number(month) || now.getMonth() + 1;
+  const lastDay = new Date(safeYear, safeMonth, 0).getDate();
+
+  const days = Array.from({ length: lastDay }).map((_, index) => {
+    const day = index + 1;
+    const date = `${safeYear}-${String(safeMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const seed = index + safeMonth * 3;
+    const cpuAvg = round(24 + Math.sin(seed / 2) * 7 + (index % 5), 2);
+    const memoryAvg = round(50 + Math.cos(seed / 3) * 9, 2);
+    const diskAvg = round(41 + (index % 7) * 1.4, 2);
+    const networkAvg = round(180 + Math.sin(seed / 4) * 80, 2);
+    const alertCount = cpuAvg >= 32 || day % 9 === 0 ? 1 : 0;
+
+    return {
+      date,
+      hasData: true,
+      worstStatus: alertCount ? "WARNING" : "HEALTHY",
+      alertCount,
+      host: {
+        cpu: { avg: cpuAvg, min: Math.max(0, cpuAvg - 8), max: cpuAvg + 12, latest: cpuAvg + 2 },
+        memory: { avg: memoryAvg, min: Math.max(0, memoryAvg - 5), max: memoryAvg + 7, latest: memoryAvg + 1 },
+        disk: { avg: diskAvg, min: Math.max(0, diskAvg - 2), max: diskAvg + 3, latest: diskAvg },
+        network: { avg: networkAvg, min: Math.max(0, networkAvg - 80), max: networkAvg + 120, latest: networkAvg + 18 },
+      },
+      containers: ["frontend", "backend", "db"].map((name, idx) => ({
+        containerId: name,
+        status: idx === 1 && alertCount ? "WARNING" : "RUNNING",
+        cpu: { avg: round(cpuAvg / (idx + 1.5), 2), min: 2, max: round(cpuAvg + idx * 4, 2), latest: round(cpuAvg / (idx + 1.2), 2) },
+        memory: { avg: round(memoryAvg / (idx + 1.4), 2), min: 8, max: round(memoryAvg + idx * 5, 2), latest: round(memoryAvg / (idx + 1.2), 2) },
+        network: { avg: round(networkAvg / (idx + 1.8), 2), min: 0, max: round(networkAvg + idx * 30, 2), latest: round(networkAvg / (idx + 1.5), 2) },
+      })),
+    };
+  });
+
+  return { result: { year: safeYear, month: safeMonth, days } };
 }
 
 function buildMockAgentDestination(companyId) {
@@ -705,6 +800,37 @@ export async function getContainerMetrics(
     async () => {
       await sleep(120);
       return normalizeContainerMetricsResponse(getMockContainerMetricPayload(containerId));
+    }
+  );
+}
+
+
+export async function getMonthlyMetrics(
+  companyId,
+  { year, month, startDate, endDate, signal } = {}
+) {
+  return withMockFallback(
+    async () => {
+      const qs = new URLSearchParams();
+      if (year) qs.set("year", String(year));
+      if (month) qs.set("month", String(month));
+      if (startDate) qs.set("startDate", String(startDate));
+      if (endDate) qs.set("endDate", String(endDate));
+
+      const query = qs.toString();
+      const data = await fetchJson(
+        `${API_BASE_URL}/dashboard/${companyId}/metrics/monthly${query ? `?${query}` : ""}`,
+        { signal }
+      );
+
+      return normalizeMonthlyMetricsResponse(data);
+    },
+    async () => {
+      await sleep(140);
+      const base = startDate ? new Date(startDate) : new Date();
+      return normalizeMonthlyMetricsResponse(
+        buildMockMonthlyMetricsPayload(year || base.getFullYear(), month || base.getMonth() + 1)
+      );
     }
   );
 }
