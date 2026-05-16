@@ -17,14 +17,12 @@ export default function Signup() {
     birthD: "",
   });
 
-  const [agree, setAgree] = useState({
-    all: false,
-    terms: false,
-    privacy: false,
-    marketing: false,
-    sms: false,
-    email: false,
-  });
+const [agree, setAgree] = useState({
+  all: false,
+  terms: false,
+  privacy: false,
+  email: false,
+});
 
   const [touched, setTouched] = useState({
     pw2: false,
@@ -44,31 +42,24 @@ export default function Signup() {
     return form.pw === form.pw2;
   }, [form.pw, form.pw2]);
 
-  const onToggleAll = (checked) => {
-    setAgree({
-      all: checked,
-      terms: checked,
-      privacy: checked,
-      marketing: checked,
-      sms: checked,
-      email: checked,
-    });
-  };
+ const onToggleAll = (checked) => {
+  setAgree({
+    all: checked,
+    terms: checked,
+    privacy: checked,
+    email: checked,
+  });
+};
 
-  const onToggle = (key, checked) => {
-    setAgree((prev) => {
-      const next = { ...prev, [key]: checked };
+const onToggle = (key, checked) => {
+  setAgree((prev) => {
+    const next = { ...prev, [key]: checked };
 
-      const allOn =
-        next.terms &&
-        next.privacy &&
-        next.marketing &&
-        next.sms &&
-        next.email;
+    const allOn = next.terms && next.privacy && next.email;
 
-      return { ...next, all: allOn };
-    });
-  };
+    return { ...next, all: allOn };
+  });
+};
 
   const validateBeforeSubmit = () => {
     setSubmitError("");
@@ -217,17 +208,7 @@ export default function Signup() {
                   checked={agree.privacy}
                   onChange={(v) => onToggle("privacy", v)}
                 />
-                <AgreeRow
-                  label="[선택] 수신 동의"
-                  checked={agree.marketing}
-                  onChange={(v) => onToggle("marketing", v)}
-                />
-                <AgreeRow
-                  label="SMS 수신 동의"
-                  checked={agree.sms}
-                  onChange={(v) => onToggle("sms", v)}
-                  isSub
-                />
+               
                 <AgreeRow
                   label="이메일 수신 동의"
                   checked={agree.email}
