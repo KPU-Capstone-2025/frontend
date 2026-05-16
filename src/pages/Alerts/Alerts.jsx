@@ -9,7 +9,10 @@ const DEFAULT_RULES = {
   cpuThreshold: 80,
   memoryThreshold: 85,
   diskThreshold: 90,
-  networkThresholdMb: 10,
+  diskIoMb: 100,
+  userCountThreshold: 10,
+  netInMb: 10,
+  netOutMb: 10,
   durationSeconds: 10,
 };
 
@@ -25,12 +28,14 @@ function normalizeServerName(server) {
 
 function fromBackend(data) {
   if (!data) return DEFAULT_RULES;
-
   return {
     cpuThreshold: data.cpuThreshold ?? DEFAULT_RULES.cpuThreshold,
     memoryThreshold: data.memoryThreshold ?? DEFAULT_RULES.memoryThreshold,
     diskThreshold: data.diskThreshold ?? DEFAULT_RULES.diskThreshold,
-    networkThresholdMb: Math.round((data.networkThreshold ?? 10 * MB) / MB),
+    diskIoMb: Math.round((data.diskIoThreshold ?? DEFAULT_RULES.diskIoMb * MB) / MB),
+    userCountThreshold: data.userCountThreshold ?? DEFAULT_RULES.userCountThreshold,
+    netInMb: Math.round((data.networkInThreshold ?? DEFAULT_RULES.netInMb * MB) / MB),
+    netOutMb: Math.round((data.networkOutThreshold ?? DEFAULT_RULES.netOutMb * MB) / MB),
     durationSeconds: data.durationSeconds ?? DEFAULT_RULES.durationSeconds,
   };
 }
@@ -43,7 +48,10 @@ function toBackend(rules, { companyId, monitoringId, hostName }) {
     cpuThreshold: Number(rules.cpuThreshold),
     memoryThreshold: Number(rules.memoryThreshold),
     diskThreshold: Number(rules.diskThreshold),
-    networkThreshold: Number(rules.networkThresholdMb) * MB,
+    diskIoThreshold: Number(rules.diskIoMb) * MB,
+    userCountThreshold: Number(rules.userCountThreshold),
+    networkInThreshold: Number(rules.netInMb) * MB,
+    networkOutThreshold: Number(rules.netOutMb) * MB,
     durationSeconds: Number(rules.durationSeconds),
   };
 }
@@ -92,7 +100,10 @@ function AppliedRules({ rules }) {
     ["CPU", `${rules.cpuThreshold}%`],
     ["메모리", `${rules.memoryThreshold}%`],
     ["디스크", `${rules.diskThreshold}%`],
-    ["네트워크", `${rules.networkThresholdMb} MB/s`],
+    ["디스크 I/O", `${rules.diskIoMb} MB/s`],
+    ["접속자 수", `${rules.userCountThreshold}명`],
+    ["네트워크 수신", `${rules.netInMb} MB/s`],
+    ["네트워크 송신", `${rules.netOutMb} MB/s`],
     ["지속 시간", `${rules.durationSeconds}초`],
   ];
 
@@ -216,7 +227,7 @@ export default function Alerts() {
       <div className="alertsWrap">
         <div className="alertsTitle">알림 설정</div>
         <div className="alertsDesc">
-         서버 리소스 사용량이 기준을 초과하면 알림을 받을 수 있습니다.
+          서버 리소스 사용량이 기준을 초과하면 알림을 받을 수 있습니다.
         </div>
 
         {servers.length > 0 && (
@@ -248,7 +259,7 @@ export default function Alerts() {
         {saveMsg && <div className="saveSuccess">{saveMsg}</div>}
         <AppliedRules rules={original} />
 
-        <Panel icon="🚨" title={`호스트 서버 임계값 — ${selectedLabel}`} sub="CPU · 메모리 · 디스크 · 네트워크 초과 시 알림">
+        <Panel icon="▦" title={`리소스 임계값 — ${selectedLabel}`} sub="CPU · 메모리 · 디스크 · 디스크 I/O 초과 시 알림">
           <div className="grid2">
             <Field
               label="CPU 사용률"
@@ -280,16 +291,28 @@ export default function Alerts() {
               onChange={(v) => setRule("diskThreshold", v)}
             />
             <Field
-              label="네트워크 트래픽"
+              label="디스크 I/O"
               unit="MB/s"
               min={1}
               max={100000}
-              hint="수신+송신 트래픽 합산 기준"
-              value={rules.networkThresholdMb}
-              onChange={(v) => setRule("networkThresholdMb", v)}
+              hint="읽기+쓰기 합산 속도 기준"
+              value={rules.diskIoMb}
+              onChange={(v) => setRule("diskIoMb", v)}
             />
           </div>
-          <div className="grid1 thresholdSingle">
+        </Panel>
+
+        <Panel icon="▣" title={`접속자 · 네트워크 — ${selectedLabel}`} sub="동시 접속자 수 · 네트워크 수신/송신 초과 시 알림">
+          <div className="grid2">
+            <Field
+              label="동시 접속자 수"
+              unit="명"
+              min={1}
+              max={10000}
+              hint="로그인 사용자 수가 이 수치를 넘으면 알림"
+              value={rules.userCountThreshold}
+              onChange={(v) => setRule("userCountThreshold", v)}
+            />
             <Field
               label="지속 시간"
               unit="초"
@@ -298,6 +321,26 @@ export default function Alerts() {
               hint="임계값 초과가 이 시간 이상 유지되면 알림"
               value={rules.durationSeconds}
               onChange={(v) => setRule("durationSeconds", v)}
+            />
+          </div>
+          <div className="grid2">
+            <Field
+              label="네트워크 수신량"
+              unit="MB/s"
+              min={1}
+              max={100000}
+              hint="인바운드 트래픽 기준"
+              value={rules.netInMb}
+              onChange={(v) => setRule("netInMb", v)}
+            />
+            <Field
+              label="네트워크 송신량"
+              unit="MB/s"
+              min={1}
+              max={100000}
+              hint="아웃바운드 트래픽 기준"
+              value={rules.netOutMb}
+              onChange={(v) => setRule("netOutMb", v)}
             />
           </div>
         </Panel>
