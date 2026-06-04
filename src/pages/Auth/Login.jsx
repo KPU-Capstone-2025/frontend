@@ -25,8 +25,11 @@ export default function Login() {
       const session = await loginCompany({ email, password });
 
       setStoredSession({
+        id: session.id,
+        companyId: session.companyId || session.id,
         name: session.name,
         companyName: session.name,
+        monitoringId: session.monitoringId || "",
         token: session.token || "",
       });
 

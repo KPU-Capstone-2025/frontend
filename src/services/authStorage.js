@@ -45,12 +45,20 @@ function normalizeSession(rawSession) {
 
 export function setStoredSession(session) {
   const token = session?.token || session?.accessToken || session?.jwt || "";
+  const fallbackSession = token
+    ? {}
+    : {
+        id: session?.id || session?.companyId || "",
+        companyId: session?.companyId || session?.id || "",
+        monitoringId: session?.monitoringId || "",
+      };
 
   window.sessionStorage.setItem(
     SESSION_KEY,
     JSON.stringify({
       token,
       companyName: session?.companyName || session?.name || "",
+      ...fallbackSession,
     })
   );
 }
