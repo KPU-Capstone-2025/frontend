@@ -532,13 +532,18 @@ function LiveChartCard({
   const chartRef = useRef(null);
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
+  const chartSeries = useMemo(
+    () => smoothSeries(rawSeries || [], unit, { sensitivity }),
+    [rawSeries, sensitivity, unit]
+  );
+
   const geometry = useMemo(
     () =>
-      createChartGeometry(rawSeries || [], {
+      createChartGeometry(chartSeries, {
         width: CHART_WIDTH,
         height: CHART_HEIGHT,
       }),
-    [rawSeries]
+    [chartSeries]
   );
 
   const trend = useMemo(() => calcTrend(rawSeries), [rawSeries]);

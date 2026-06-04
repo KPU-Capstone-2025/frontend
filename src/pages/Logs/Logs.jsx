@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import "./logs.css";
-import { getStoredSession, buildCompanyDisplayName } from "../../services/authStorage.js";
+import { getStoredSession } from "../../services/authStorage.js";
 import { fetchLogs, getLogFilterOptions } from "../../services/logApi.js";
 
 export default function Logs() {
   const session = getStoredSession();
   const companyId = session?.id || "";
-  const companyName = buildCompanyDisplayName(session);
 
   const [logs, setLogs] = useState({ items: [], total: 0, counts: { total: 0, ERROR: 0, WARN: 0, INFO: 0 }, containers: [] });
   const [loading, setLoading] = useState(false);

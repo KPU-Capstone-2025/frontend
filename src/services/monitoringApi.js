@@ -66,12 +66,7 @@ async function withMockFallback(realFn, mockFn) {
   }
 }
 
-function getAuthHeaders() {
-  const token = getStoredAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-async function fetchJson(url, { method = "GET", headers, body, signal, auth = true } = {}) {
+async function fetchJson(url, { method = "GET", headers, body, signal } = {}) {
   let res;
 
   try {
@@ -347,13 +342,6 @@ function normalizeContainerMetricsResponse(payload) {
   };
 }
 
-
-function toDateKey(date = new Date()) {
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
 
 function normalizeMetricStats(stats = {}) {
   return {
@@ -790,8 +778,11 @@ export async function getContainerMetrics(
 ) {
   return withMockFallback(
     async () => {
+      const qs = new URLSearchParams();
+      if (range) qs.set("range", String(range));
+
       const data = await fetchJson(
-        `${API_BASE_URL}/dashboard/${companyId}/container/${encodeURIComponent(containerId)}/metrics`,
+        `${API_BASE_URL}/dashboard/${companyId}/container/${encodeURIComponent(containerId)}/metrics?${qs.toString()}`,
         { signal }
       );
 

@@ -136,8 +136,8 @@ export default function AgentInstall() {
     return [
       "curl -fLO http://agent.monittoring.co.kr/metric-agent",
       "chmod +x metric-agent",
-      `export MONITORING_ID=\"${monitoringId}\"`,
-      `export COLLECTOR_URL=\"${collectorUrl}\"`,
+      `export MONITORING_ID="${monitoringId}"`,
+      `export COLLECTOR_URL="${collectorUrl}"`,
       "sudo -E nohup ./metric-agent > metric.log 2>&1 &",
     ].join("\n");
   }, [collectorUrl, monitoringId]);
