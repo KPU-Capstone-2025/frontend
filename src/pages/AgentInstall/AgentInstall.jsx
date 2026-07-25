@@ -10,12 +10,30 @@ function CopyButton({ text, label = "복사", className = "", disabled = false }
     if (!text || disabled) return;
 
     try {
-      await navigator.clipboard.writeText(text);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // HTTP 환경에서도 정상 작동하는 대체 복사 로직 (document.execCommand)
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          const successful = document.execCommand("copy");
+          if (!successful) throw new Error("copy command failed");
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch (error) {
       console.error("복사 실패:", error);
-      alert("복사에 실패했습니다.");
+      alert("클립보드 복사에 실패했습니다. 직접 선택해서 복사해 주세요.");
     }
   }
 
@@ -114,7 +132,7 @@ export default function AgentInstall() {
   }, []);
 
   const monitoringId = agentInfo?.apiKey || "불러오는 중";
-  const collectorUrl = "http://data.monittoring.co.kr";
+  const collectorUrl = "data.monittoring.co.kr";
 
   const dockerRunCommand = useMemo(() => {
     return [
@@ -136,9 +154,7 @@ export default function AgentInstall() {
     return [
       "curl -fLO http://agent.monittoring.co.kr/metric-agent",
       "chmod +x metric-agent",
-      `export MONITORING_ID="${monitoringId}"`,
-      `export COLLECTOR_URL="${collectorUrl}"`,
-      "sudo -E nohup ./metric-agent > metric.log 2>&1 &",
+      `sudo env MONITORING_ID="${monitoringId}" COLLECTOR_URL="${collectorUrl}" nohup ./metric-agent > metric.log 2>&1 &`,
     ].join("\n");
   }, [collectorUrl, monitoringId]);
 
