@@ -114,7 +114,7 @@ export default function AgentInstall() {
   }, []);
 
   const monitoringId = agentInfo?.apiKey || "불러오는 중";
-  const collectorUrl = agentInfo?.collectorUrl || "불러오는 중";
+  const collectorUrl = "http://data.monittoring.co.kr";
 
   const dockerRunCommand = useMemo(() => {
     return [
@@ -150,7 +150,7 @@ export default function AgentInstall() {
             <div className="agentHero__eyebrow">Metric Agent · 설치 가이드</div>
             <h2 className="agentHero__title">에이전트 설치 방법을 확인하고 바로 실행하세요</h2>
             <p className="agentHero__desc">
-              로그인한 회사 기준으로 발급된 MONITORING_ID와 COLLECTOR_URL을 자동으로 불러옵니다.
+              로그인한 회사 기준으로 발급된 MONITORING_ID와 고정된 COLLECTOR_URL을 사용합니다.
             </p>
           </div>
 
@@ -163,7 +163,7 @@ export default function AgentInstall() {
               <div className="statusCard__text">
                 {companyName}
                 <br />
-                {error ? error : `MONITORING_ID와 COLLECTOR_URL이 자동 반영됩니다.`}
+                {error ? error : `MONITORING_ID와 COLLECTOR_URL이 반영됩니다.`}
               </div>
             </div>
           </div>

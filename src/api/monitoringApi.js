@@ -1,4 +1,4 @@
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://capstone-elb-2051343563.ap-northeast-2.elb.amazonaws.com:8080/api").replace(/\/$/, "");
+const BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "");
 
 function getStoredAuthToken() {
   try {

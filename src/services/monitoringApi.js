@@ -1,6 +1,5 @@
-const DEFAULT_BASE_URL = "http://capstone-elb-2051343563.ap-northeast-2.elb.amazonaws.com:8080/api";
 export const API_BASE_URL =
-  (import.meta?.env?.VITE_API_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
+  import.meta.env.VITE_API_BASE_URL.replace(/\/$/, "");
 
 const USE_MOCK = import.meta?.env?.VITE_USE_MOCK === "true";
 const ENABLE_FALLBACK =
