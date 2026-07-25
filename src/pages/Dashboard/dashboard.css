@@ -67,9 +67,22 @@
 }
 
 .unifiedPanel--danger {
-  border-color: rgba(239, 68, 68, 0.25);
-  background: linear-gradient(180deg, #ffffff 0%, #fff6f6 100%);
-  box-shadow: 0 18px 48px rgba(239, 68, 68, 0.12);
+  border: 2px solid #ef4444;
+  background: linear-gradient(180deg, #ffffff 0%, #fff0f0 100%);
+  box-shadow: 0 18px 48px rgba(239, 68, 68, 0.22);
+  animation: danger-pulse 2s infinite;
+}
+
+@keyframes danger-pulse {
+  0% {
+    box-shadow: 0 18px 48px rgba(239, 68, 68, 0.22);
+  }
+  50% {
+    box-shadow: 0 18px 48px rgba(239, 68, 68, 0.4), 0 0 0 8px rgba(239, 68, 68, 0.15);
+  }
+  100% {
+    box-shadow: 0 18px 48px rgba(239, 68, 68, 0.22);
+  }
 }
 
 .unifiedPanel__head {
@@ -176,8 +189,11 @@
 }
 
 .unifiedMetricCard.is-danger {
-  background: linear-gradient(180deg, #fff8f8 0%, #ffffff 100%);
-  border-color: rgba(239, 68, 68, 0.14);
+  background: linear-gradient(180deg, #ffeded 0%, #fff8f8 100%);
+  border: 1.5px solid #ef4444;
+}
+.unifiedMetricCard.is-danger .unifiedMetricCard__value {
+  color: #ef4444 !important;
 }
 
 .unifiedMetricCard__title {
@@ -225,8 +241,11 @@
 }
 
 .liveChartCard.is-danger {
-  background: linear-gradient(180deg, #fffafa 0%, #ffffff 100%);
-  border-color: rgba(239, 68, 68, 0.16);
+  background: linear-gradient(180deg, #ffeded 0%, #ffffff 100%);
+  border: 1.5px solid #ef4444;
+}
+.liveChartCard.is-danger .liveChartCard__title {
+  color: #ef4444 !important;
 }
 
 .liveChartCard__head {
@@ -547,8 +566,11 @@
 }
 
 .detailSummaryCard.is-danger {
-  background: linear-gradient(180deg, #fff8f8 0%, #ffffff 100%);
-  border-color: rgba(239, 68, 68, 0.14);
+  background: linear-gradient(180deg, #ffeded 0%, #ffffff 100%);
+  border: 1.5px solid #ef4444;
+}
+.detailSummaryCard.is-danger .detailSummaryCard__value {
+  color: #ef4444 !important;
 }
 
 .detailSummaryCard__label {
@@ -724,7 +746,8 @@
 }
 
 .userTableRow.is-danger {
-  background: #fff6f6;
+  background: #ffe3e3;
+  border-left: 4px solid #ef4444;
 }
 
 .userTd {

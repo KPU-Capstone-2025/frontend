@@ -456,12 +456,17 @@ function ensureContainerPolling(companyId) {
   if (runtime.containerTimer) return;
 
   runtime.containerTimer = setInterval(async () => {
-    const { selectedContainerId } = runtime.snapshot;
-    if (!selectedContainerId) return;
+    const { containers } = runtime.snapshot;
+    if (!containers || containers.length === 0) return;
 
-    await fetchContainerMetricsSnapshot(companyId, selectedContainerId, {
-      showLoading: false,
-    });
+    // 모든 컨테이너의 메트릭을 병렬로 폴링
+    await Promise.all(
+      containers.map((container) =>
+        fetchContainerMetricsSnapshot(companyId, container.id, {
+          showLoading: false,
+        })
+      )
+    );
   }, POLLING_INTERVAL);
 }
 
@@ -480,14 +485,18 @@ async function ensureDashboardStarted(companyId) {
 
     await fetchHostAndContainers(companyId);
 
-    const selectedId = getRuntime(companyId).snapshot.selectedContainerId;
-    if (selectedId) {
-      const hasCached =
-        !!getRuntime(companyId).snapshot.containerMetricsById[selectedId];
-
-      await fetchContainerMetricsSnapshot(companyId, selectedId, {
-        showLoading: !hasCached,
-      });
+    // 대시보드 진입 시 모든 컨테이너의 메트릭을 병렬로 선행 로딩
+    const containers = getRuntime(companyId).snapshot.containers || [];
+    if (containers.length > 0) {
+      await Promise.all(
+        containers.map((container) => {
+          const hasCached =
+            !!getRuntime(companyId).snapshot.containerMetricsById[container.id];
+          return fetchContainerMetricsSnapshot(companyId, container.id, {
+            showLoading: !hasCached,
+          });
+        })
+      );
     }
   } catch (e) {
     patchRuntimeSnapshot(companyId, (prev) => ({
